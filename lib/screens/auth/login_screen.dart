@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/user_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -42,12 +43,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isSubmitting = true);
     await context.read<UserProvider>().login(name);
-    // Navigation will be handled by the MultiProvider listener in main.dart
+
+    if (mounted) {
+      context.go('/home');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    const primary = Color(0xFFFF8C00);
+    final primary = Theme.of(context).colorScheme.primary;
     const background = Color(0xFFF8F7FF);
 
     return Scaffold(
@@ -208,7 +212,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF1A1A1A),
+                            fontSize: 18,
                           ),
                         ),
                         const SizedBox(height: 24),

@@ -1,3 +1,5 @@
+import 'dart:ui';
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,81 +12,136 @@ import 'providers/music_provider.dart';
 import 'providers/timer_provider.dart';
 import 'providers/interval_timer_provider.dart';
 import 'providers/nav_provider.dart';
+import 'providers/settings_provider.dart';
+import 'services/music_audio_handler.dart';
 
 import 'screens/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_shell.dart';
 
-void main() {
+void main() async {
+  // Global error handler — prevents silent black screens
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('PlatformDispatcher error: $error\n$stack');
+    return true;
+  };
+
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Disable Google Fonts network fetching — use bundled Poppins TTFs instead
+  GoogleFonts.config.allowRuntimeFetching = false;
+
+  // Start the audio background service with notification controls
+  MusicAudioHandler handler;
+  try {
+    handler = await AudioService.init(
+      builder: () => MusicAudioHandler(),
+      config: const AudioServiceConfig(
+        androidNotificationChannelId: 'com.gbytes.g_bytes.audio',
+        androidNotificationChannelName: 'G-Tunes Player',
+        androidNotificationOngoing: false, // allows stopping from notification
+        androidShowNotificationBadge: false,
+        androidStopForegroundOnPause: true, // stops when swiped from recents
+        notificationColor: Color(0xFFFF8C00),
+      ),
+    );
+  } catch (e) {
+    debugPrint(
+      'AudioService.init failed — running without background audio: $e',
+    );
+    handler = MusicAudioHandler(); // fallback: music plays but no notification
+  }
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
     ),
   );
-  runApp(const GBytesApp());
-}
 
-final _router = GoRouter(
-  initialLocation: '/splash',
-  routes: [
-    GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
-    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-    GoRoute(path: '/home', builder: (context, state) => const MainShell()),
-  ],
-  redirect: (context, state) {
-    final user = context.read<UserProvider>();
-    if (!user.isInitialized) return null;
-
-    final isLoggingIn = state.matchedLocation == '/login';
-    final isSplashing = state.matchedLocation == '/splash';
-
-    if (!user.isLoggedIn) {
-      return (isLoggingIn || isSplashing) ? null : '/login';
-    }
-
-    if (isLoggingIn || isSplashing) return '/home';
-
-    return null;
-  },
-);
-
-class GBytesApp extends StatelessWidget {
-  const GBytesApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
+  runApp(
+    MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()..init()),
         ChangeNotifierProvider(create: (_) => GameProvider()),
-        ChangeNotifierProvider(create: (_) => MusicProvider()),
+        // MusicProvider receives the audio handler so it shares the same player
+        ChangeNotifierProvider(create: (_) => MusicProvider(handler)),
         ChangeNotifierProvider(create: (_) => TimerProvider()),
         ChangeNotifierProvider(create: (_) => IntervalTimerProvider()),
         ChangeNotifierProvider(create: (_) => NavProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
-      child: MaterialApp.router(
-        title: 'G-Bytes',
-        debugShowCheckedModeBanner: false,
-        theme: _buildLightTheme(),
-        darkTheme: _buildDarkTheme(),
-        themeMode: ThemeMode.system, // Reverted to system theme mode
-        routerConfig: _router,
-      ),
+      child: const GBytesApp(),
+    ),
+  );
+}
+
+class GBytesApp extends StatefulWidget {
+  const GBytesApp({super.key});
+
+  @override
+  State<GBytesApp> createState() => _GBytesAppState();
+}
+
+class _GBytesAppState extends State<GBytesApp> {
+  // ── Create the router ONCE so it is never recreated on settings changes ──
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    _router = GoRouter(
+      initialLocation: '/splash',
+      routes: [
+        GoRoute(
+          path: '/splash',
+          builder: (context, state) => const SplashScreen(),
+        ),
+        GoRoute(
+          path: '/login',
+          builder: (context, state) => const LoginScreen(),
+        ),
+        GoRoute(path: '/home', builder: (context, state) => const MainShell()),
+      ],
+      redirect: (context, state) {
+        // Only protect /home — splash handles its own self-navigation
+        final isHome = state.matchedLocation == '/home';
+        if (isHome) {
+          final user = context.read<UserProvider>();
+          if (user.isInitialized && !user.isLoggedIn) return '/login';
+        }
+        return null;
+      },
     );
   }
 
-  ThemeData _buildLightTheme() {
-    const primaryOrange = Color(0xFFFF8C00);
-    const bgColor = Color(0xFFF5F5F5);
+  @override
+  Widget build(BuildContext context) {
+    // Consumer<SettingsProvider> rebuilds ONLY MaterialApp theme — not the router
+    return Consumer<SettingsProvider>(
+      builder: (context, settings, _) {
+        final seedColor = settings.appSeedColor;
+        return MaterialApp.router(
+          title: 'G-Bytes',
+          debugShowCheckedModeBanner: false,
+          theme: _buildLightTheme(seedColor),
+          darkTheme: _buildDarkTheme(seedColor),
+          themeMode: ThemeMode.light,
+          routerConfig: _router,
+        );
+      },
+    );
+  }
+
+  ThemeData _buildLightTheme(Color seed) {
+    const bgColor = Colors.white;
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryOrange,
-        primary: primaryOrange,
+        seedColor: seed,
+        primary: seed,
         surface: Colors.white,
         brightness: Brightness.light,
       ),
@@ -92,7 +149,7 @@ class GBytesApp extends StatelessWidget {
       textTheme: GoogleFonts.poppinsTextTheme(),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryOrange,
+          backgroundColor: seed,
           foregroundColor: Colors.white,
           textStyle: GoogleFonts.poppins(
             fontWeight: FontWeight.w700,
@@ -119,7 +176,7 @@ class GBytesApp extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: primaryOrange, width: 2),
+          borderSide: BorderSide(color: seed, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
@@ -146,8 +203,7 @@ class GBytesApp extends StatelessWidget {
     );
   }
 
-  ThemeData _buildDarkTheme() {
-    const neonCyan = Color(0xFF00F5FF);
+  ThemeData _buildDarkTheme(Color seed) {
     const darkBg = Color(0xFF0D0D0D);
     const darkSurface = Color(0xFF1A1A1A);
     const darkCard = Color(0xFF222222);
@@ -156,8 +212,8 @@ class GBytesApp extends StatelessWidget {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: neonCyan,
-        primary: neonCyan,
+        seedColor: seed,
+        primary: seed,
         surface: darkSurface,
         brightness: Brightness.dark,
       ),
@@ -167,7 +223,7 @@ class GBytesApp extends StatelessWidget {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: neonCyan,
+          backgroundColor: seed,
           foregroundColor: Colors.black,
           textStyle: GoogleFonts.poppins(
             fontWeight: FontWeight.w700,
@@ -179,7 +235,7 @@ class GBytesApp extends StatelessWidget {
           ),
           minimumSize: const Size(double.infinity, 56),
           elevation: 6,
-          shadowColor: neonCyan.withAlpha(120),
+          shadowColor: seed.withAlpha(120),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -195,7 +251,7 @@ class GBytesApp extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: neonCyan, width: 2),
+          borderSide: BorderSide(color: seed, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,

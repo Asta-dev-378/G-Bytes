@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import '../../providers/timer_provider.dart';
+import '../../providers/settings_provider.dart';
 
 class TimerScreen extends StatelessWidget {
   const TimerScreen({super.key});
@@ -16,11 +17,16 @@ class TimerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final timer = context.watch<TimerProvider>();
+    final settings = context.watch<SettingsProvider>();
+
+    // Sync sound setting
+    timer.soundEnabled = settings.soundEffectsEnabled;
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final orange = isDark ? Colors.orangeAccent : const Color(0xFFFF8C00);
+    final orange = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Focus Timer')),
+      appBar: AppBar(title: const Text('G-Timer')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -241,7 +247,9 @@ class _ModeBtn extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFFFF8C00) : Colors.transparent,
+            color: selected
+                ? Theme.of(context).colorScheme.primary
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Center(

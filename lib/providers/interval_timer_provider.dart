@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:flutter/material.dart';
 
 enum IntervalPhase { work, rest, complete }
@@ -14,6 +14,12 @@ class IntervalTimerProvider extends ChangeNotifier {
   int _remainingSeconds = 45;
   bool _isRunning = false;
   Timer? _timer;
+
+  // Sound control — injected from outside or defaulting to true
+  bool soundEnabled = true;
+
+  // Callback when workout completes
+  VoidCallback? onWorkoutComplete;
 
   // Audio
   final AudioPlayer _tickPlayer = AudioPlayer();
@@ -32,19 +38,23 @@ class IntervalTimerProvider extends ChangeNotifier {
   }
 
   Future<void> _playTick() async {
-    await _tickPlayer.stop();
-    await _tickPlayer.play(
-      AssetSource('lib/screens/timer/timer_audio/Tick.mp3'),
-      volume: 0.8,
-    );
+    if (!soundEnabled) return;
+    try {
+      await _tickPlayer.stop();
+      await _tickPlayer.setAsset('assets/audio/Tick2.mp3');
+      await _tickPlayer.setVolume(0.8);
+      await _tickPlayer.play();
+    } catch (_) {}
   }
 
   Future<void> _playStop() async {
-    await _stopPlayer.stop();
-    await _stopPlayer.play(
-      AssetSource('lib/screens/timer/timer_audio/Stop.mp3'),
-      volume: 1.0,
-    );
+    if (!soundEnabled) return;
+    try {
+      await _stopPlayer.stop();
+      await _stopPlayer.setAsset('assets/audio/Stop.mp3');
+      await _stopPlayer.setVolume(1.0);
+      await _stopPlayer.play();
+    } catch (_) {}
   }
 
   void setWork(int seconds) {
@@ -77,19 +87,19 @@ class IntervalTimerProvider extends ChangeNotifier {
   void pauseResume() {
     if (_isRunning) {
       _timer?.cancel();
+      _tickPlayer.stop();
       _isRunning = false;
-      _playStop();
       notifyListeners();
     } else {
       if (_phase != IntervalPhase.complete) {
         _startTicker();
-        _playTick();
       }
     }
   }
 
   void stopWorkout() {
-    _playStop();
+    _tickPlayer.stop();
+    _stopPlayer.stop();
     _resetTimer();
   }
 
@@ -108,6 +118,9 @@ class IntervalTimerProvider extends ChangeNotifier {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
+        if (_phase == IntervalPhase.work) {
+          _playTick();
+        }
         notifyListeners();
       } else {
         _handlePhaseTransition();
@@ -117,6 +130,7 @@ class IntervalTimerProvider extends ChangeNotifier {
 
   void _handlePhaseTransition() {
     if (_phase == IntervalPhase.work) {
+      _playStop();
       if (_restSeconds > 0) {
         _phase = IntervalPhase.rest;
         _remainingSeconds = _restSeconds;
@@ -134,11 +148,14 @@ class IntervalTimerProvider extends ChangeNotifier {
       _currentRound++;
       _phase = IntervalPhase.work;
       _remainingSeconds = _workSeconds;
+      _playTick();
     } else {
       _phase = IntervalPhase.complete;
       _isRunning = false;
       _timer?.cancel();
-      _playStop(); // play stop sound when workout completes
+      _playStop();
+      // Call completion callback
+      onWorkoutComplete?.call();
     }
   }
 

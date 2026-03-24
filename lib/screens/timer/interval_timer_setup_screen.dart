@@ -11,8 +11,7 @@ class IntervalTimerSetupScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final timer = context.watch<IntervalTimerProvider>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final orange = isDark ? Colors.orangeAccent : const Color(0xFFFF8C00);
+    final orange = Theme.of(context).colorScheme.primary;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),

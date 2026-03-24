@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/settings_provider.dart';
 
 class SchulteGameScreen extends StatefulWidget {
   const SchulteGameScreen({super.key});
@@ -16,6 +17,7 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
     with SingleTickerProviderStateMixin {
   bool _started = false;
   int _selectedLevel = 1;
+  bool _hardMode = false;
 
   @override
   void dispose() {
@@ -34,6 +36,7 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
   @override
   Widget build(BuildContext context) {
     final game = context.watch<GameProvider>();
+    final settings = context.watch<SettingsProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final accent = isDark ? const Color(0xFF00E5FF) : const Color(0xFF00BCD4);
 
@@ -43,13 +46,37 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
           children: [
             const Text('Schulte Table'),
             if (_started)
-              Text(
-                'Grid ${game.schulteGridSize}×${game.schulteGridSize}  •  Next: ${game.schulteNext}',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w500,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Grid ${game.schulteGridSize}×${game.schulteGridSize}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (!_hardMode) ...[
+                    Text(
+                      '  •  Next: ${game.schulteNext}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: accent,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ] else ...[
+                    Text(
+                      '  •  HARD',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.red.shade400,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ],
               ),
           ],
         ),
@@ -82,14 +109,14 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
         ],
       ),
       body: !_started
-          ? _buildStart(accent)
+          ? _buildStart(accent, settings)
           : game.state == GameState.roundComplete
           ? _buildComplete(game, accent)
           : _buildGame(game, accent),
     );
   }
 
-  Widget _buildStart(Color accent) {
+  Widget _buildStart(Color accent, SettingsProvider settings) {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -117,9 +144,63 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
                 color: Colors.grey.shade600,
               ),
             ).animate(delay: 150.ms).fadeIn(),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
+
+            // Hard Mode Toggle
+            Container(
+              decoration: BoxDecoration(
+                color: _hardMode ? Colors.red.shade50 : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: _hardMode ? Colors.red.shade300 : Colors.grey.shade200,
+                  width: 1.5,
+                ),
+              ),
+              child: SwitchListTile.adaptive(
+                value: _hardMode,
+                onChanged: (v) {
+                  setState(() => _hardMode = v);
+                  settings.setSchulteHardMode(v);
+                },
+                activeTrackColor: Colors.red.shade400,
+                activeThumbColor: Colors.red.shade200,
+                title: Row(
+                  children: [
+                    Icon(
+                      _hardMode
+                          ? Icons.whatshot_rounded
+                          : Icons.whatshot_outlined,
+                      color: _hardMode ? Colors.red.shade400 : Colors.grey,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Hard Mode',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: _hardMode
+                            ? Colors.red.shade700
+                            : Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Text(
+                  _hardMode
+                      ? 'No hints — find numbers on your own!'
+                      : 'Numbers are highlighted for guidance',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: _hardMode ? Colors.red.shade400 : Colors.grey,
+                  ),
+                ),
+              ),
+            ).animate(delay: 175.ms).fadeIn(),
+            const SizedBox(height: 20),
+
             Text(
-              'Choose Difficulty',
+              'Choose Grid Size',
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w700,
                 fontSize: 16,
@@ -145,7 +226,7 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
                 const SizedBox(width: 12),
                 _DiffBtn(
                   label: '5×5',
-                  sub: 'Hard',
+                  sub: 'Large',
                   color: Colors.red.shade400,
                   onTap: () => _start(3),
                 ),
@@ -161,20 +242,29 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
     final size = game.schulteGridSize;
     return Column(
       children: [
-        // Progress indicator
+        // Progress indicator (only in Easy mode show the number)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Find: ${game.schulteNext}',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: accent,
-                ),
-              ),
+              _hardMode
+                  ? Text(
+                      'Hard Mode 🔥',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.red.shade400,
+                      ),
+                    )
+                  : Text(
+                      'Find: ${game.schulteNext}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: accent,
+                      ),
+                    ),
               Text(
                 '${game.schulteNext - 1} / ${game.schulteTotal}',
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey),
@@ -185,7 +275,9 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
         LinearProgressIndicator(
           value: (game.schulteNext - 1) / game.schulteTotal,
           backgroundColor: Colors.grey.shade200,
-          valueColor: AlwaysStoppedAnimation<Color>(accent),
+          valueColor: AlwaysStoppedAnimation<Color>(
+            _hardMode ? Colors.red.shade400 : accent,
+          ),
           minHeight: 6,
         ),
         const SizedBox(height: 20),
@@ -207,26 +299,28 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
                 final isFound = number < game.schulteNext;
                 final isNext = number == game.schulteNext;
 
+                // In hard mode: no highlighting or color distinction for "next"
+                final showHighlight = !_hardMode && isNext;
+                final showFound = !_hardMode && isFound;
+
                 return GestureDetector(
                   onTap: () => game.tapSchulteCell(number),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     decoration: BoxDecoration(
-                      color: isFound
+                      color: showFound
                           ? accent.withAlpha(40)
-                          : isNext
-                          ? Theme.of(context).cardColor
                           : Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isNext
+                        color: showHighlight
                             ? accent
-                            : isFound
+                            : showFound
                             ? Colors.transparent
                             : Colors.grey.withAlpha(40),
-                        width: isNext ? 2.5 : 1,
+                        width: showHighlight ? 2.5 : 1,
                       ),
-                      boxShadow: isNext
+                      boxShadow: showHighlight
                           ? [
                               BoxShadow(
                                 color: accent.withAlpha(80),
@@ -242,9 +336,9 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
                         style: GoogleFonts.poppins(
                           fontSize: size == 5 ? 18 : 24,
                           fontWeight: FontWeight.w800,
-                          color: isFound
+                          color: showFound
                               ? accent.withAlpha(120)
-                              : isNext
+                              : showHighlight
                               ? accent
                               : null,
                         ),
@@ -283,12 +377,22 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
                 ),
               ).animate().shimmer(duration: 1200.ms),
             Text(
-              'Completed!',
+              _hardMode ? 'Hard Mode Complete!' : 'Completed!',
               style: GoogleFonts.poppins(
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
               ),
             ).animate(delay: 100.ms).fadeIn(),
+            if (_hardMode)
+              Text(
+                'Impressive! You did it without hints 🔥',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: Colors.red.shade400,
+                  fontWeight: FontWeight.w600,
+                ),
+              ).animate(delay: 150.ms).fadeIn(),
             const SizedBox(height: 20),
             _ResultRow(
               label: 'Time',

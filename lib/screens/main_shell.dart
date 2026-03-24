@@ -1,20 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/nav_provider.dart';
+import '../providers/timer_provider.dart';
+import '../providers/interval_timer_provider.dart';
 import 'home/g_zone_screen.dart';
 import 'timer/timer_shell_screen.dart';
 import 'music/music_player_screen.dart';
-import 'profile/profile_screen.dart';
 
-class MainShell extends StatelessWidget {
+class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   static const List<Widget> _screens = [
     GZoneScreen(),
     TimerShellScreen(),
     MusicPlayerScreen(),
-    ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      // Pause classic timer if running
+      final timer = context.read<TimerProvider>();
+      if (timer.status == TimerStatus.running) {
+        timer.pause();
+      }
+      // Stop interval timer if running
+      final interval = context.read<IntervalTimerProvider>();
+      if (interval.isRunning) {
+        interval.pauseResume(); // toggles to paused
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +66,7 @@ class _GBytesNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primary = Color(0xFFFF8C00);
+    final primary = Theme.of(context).colorScheme.primary;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -71,14 +105,6 @@ class _GBytesNavBar extends StatelessWidget {
                 activeIcon: Icons.music_note,
                 label: 'G-Tunes',
                 index: 2,
-                current: currentIndex,
-                color: primary,
-              ),
-              _NavItem(
-                icon: Icons.person_outline,
-                activeIcon: Icons.person,
-                label: 'Profile',
-                index: 3,
                 current: currentIndex,
                 color: primary,
               ),

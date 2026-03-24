@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../../providers/timer_provider.dart';
+import '../../providers/interval_timer_provider.dart';
 import 'timer_screen.dart';
 import 'interval_timer_setup_screen.dart';
 
@@ -22,13 +25,16 @@ class _TimerShellScreenState extends State<TimerShellScreen>
 
   @override
   void dispose() {
+    // Stop all sounds from both timers when exiting
+    context.read<TimerProvider>().stopAllSounds();
+    context.read<IntervalTimerProvider>().stopWorkout();
     _tabController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    const orange = Color(0xFFFF8C00);
+    final primary = Theme.of(context).colorScheme.primary;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -40,25 +46,19 @@ class _TimerShellScreenState extends State<TimerShellScreen>
           ),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: Color(0xFF1A1A1A)),
-            onPressed: () {},
-          ),
-        ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: orange,
+          labelColor: primary,
           unselectedLabelColor: Colors.grey.shade600,
           labelStyle: GoogleFonts.poppins(
             fontWeight: FontWeight.w700,
             fontSize: 14,
           ),
-          indicatorColor: orange,
+          indicatorColor: primary,
           indicatorWeight: 3,
           tabs: const [
             Tab(text: 'Classic Timer'),
-            Tab(text: 'Interval Timer'),
+            Tab(text: 'G-Timer'),
           ],
         ),
       ),

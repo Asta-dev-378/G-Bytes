@@ -142,7 +142,7 @@ class _MemoryGameScreenState extends State<MemoryGameScreen>
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          '+${100 * game.memoryLevel} pts',
+                          '+20 pts',
                           style: GoogleFonts.poppins(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -172,13 +172,14 @@ class _MemoryGameScreenState extends State<MemoryGameScreen>
                       final playerTap = i < game.playerPattern.length
                           ? game.playerPattern[i]
                           : null;
+                      final isHighlighted = game.highlightedIndex == i;
 
                       Color color =
                           Theme.of(context).brightness == Brightness.dark
                           ? Colors.white12
                           : Colors.grey.shade200;
 
-                      if (game.showingPattern && isActive) {
+                      if (game.showingPattern && isHighlighted) {
                         color = orange;
                       } else if (playerTap == true) {
                         color = green;
@@ -295,7 +296,7 @@ class _MemoryGameScreenState extends State<MemoryGameScreen>
                           ),
                         ).animate(delay: 100.ms).fadeIn().slideY(begin: 0.1),
                         Text(
-                          '+${100 * game.memoryLevel} pts  •  Total: ${game.score}',
+                          '+20 pts  •  Total: ${game.score}',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             color: orange,

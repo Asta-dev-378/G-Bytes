@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/league.dart';
 
 enum GameType { memory, logic, mathSprint, schulte, stroop }
 
@@ -11,10 +12,11 @@ class GameProvider extends ChangeNotifier {
   GameState _state = GameState.idle;
   GameType _currentGame = GameType.memory;
   int _score = 0;
-  final int _level = 6;
-  final int _totalLevels = 10;
-  final int _streak = 7;
-  int _totalPoints = 2480;
+  int _streak = 0;
+  int _totalPoints = 0;
+  int _dailyPoints = 0;
+  String _lastStreakDate = '';
+  int? _highlightedIndex;
 
   // High scores
   int _memoryHighScore = 0;
@@ -98,10 +100,15 @@ class GameProvider extends ChangeNotifier {
   GameState get state => _state;
   GameType get currentGame => _currentGame;
   int get score => _score;
-  int get level => _level;
-  int get totalLevels => _totalLevels;
   int get streak => _streak;
   int get totalPoints => _totalPoints;
+  int get dailyPoints => _dailyPoints;
+
+  // League getters
+  LeagueInfo get league => LeagueInfo.fromPoints(_totalPoints);
+  double get leagueProgress => LeagueInfo.progressInTier(_totalPoints);
+  int get pointsToNextLeague => LeagueInfo.pointsToNextTier(_totalPoints);
+  bool get isMaxLeague => league.tierIndex >= LeagueInfo.allTiers.length - 1;
 
   int get memoryHighScore => _memoryHighScore;
   int get logicHighScore => _logicHighScore;
@@ -118,6 +125,7 @@ class GameProvider extends ChangeNotifier {
   List<bool?> get playerPattern => _playerPattern;
   int get memoryLevel => _memoryLevel;
   bool get showingPattern => _showingPattern;
+  int? get highlightedIndex => _highlightedIndex;
 
   List<int> get logicPattern => _logicPattern;
   int? get logicAnswer => _logicAnswer;
@@ -168,7 +176,11 @@ class GameProvider extends ChangeNotifier {
   final _rng = Random();
 
   GameProvider() {
-    _loadHighScores();
+    _init();
+  }
+
+  Future<void> _init() async {
+    await _loadHighScores();
   }
 
   Future<void> _loadHighScores() async {
@@ -178,6 +190,66 @@ class GameProvider extends ChangeNotifier {
     _mathHighScore = prefs.getInt('math_high_score') ?? 0;
     _schulteHighScore = prefs.getInt('schulte_high_score') ?? 0;
     _stroopHighScore = prefs.getInt('stroop_high_score') ?? 0;
+    _totalPoints = prefs.getInt('total_points') ?? 0;
+    _streak = prefs.getInt('user_streak') ?? 0;
+    _lastStreakDate = prefs.getString('last_streak_date') ?? '';
+
+    // Reset daily points if it's a new day
+    _resetDailyPointsIfNeeded(prefs);
+    notifyListeners();
+  }
+
+  Future<void> _resetDailyPointsIfNeeded(SharedPreferences prefs) async {
+    final today = DateTime.now();
+    final todayStr = '${today.year}-${today.month}-${today.day}';
+    final lastDate = prefs.getString('daily_points_date') ?? '';
+
+    if (lastDate != todayStr) {
+      // New day - check if streak should break
+      if (_lastStreakDate != todayStr && _lastStreakDate.isNotEmpty) {
+        // User didn't reach 100 points yesterday
+        _streak = 0;
+        await prefs.setInt('user_streak', 0);
+      }
+      _dailyPoints = 0;
+      await prefs.setString('daily_points_date', todayStr);
+    } else {
+      _dailyPoints = prefs.getInt('daily_points') ?? 0;
+    }
+  }
+
+  Future<void> _addPoints(int pts) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Check if we're in a new day
+    final today = DateTime.now();
+    final todayStr = '${today.year}-${today.month}-${today.day}';
+    final lastDate = prefs.getString('daily_points_date') ?? '';
+
+    if (lastDate != todayStr) {
+      // New day - reset daily points
+      _dailyPoints = 0;
+      await prefs.setString('daily_points_date', todayStr);
+    } else {
+      _dailyPoints = prefs.getInt('daily_points') ?? 0;
+    }
+
+    // Add points but cap daily total at 100
+    // Only count towards league if under 100 daily points
+    final pointsToAdd = pts.clamp(0, 100 - _dailyPoints);
+    _dailyPoints += pointsToAdd;
+    _totalPoints += pointsToAdd;
+
+    // Check if daily goal (100 pts) is reached - unlock streak
+    if (_dailyPoints >= 100 && _lastStreakDate != todayStr) {
+      _streak++;
+      _lastStreakDate = todayStr;
+      await prefs.setInt('user_streak', _streak);
+      await prefs.setString('last_streak_date', todayStr);
+    }
+
+    await prefs.setInt('total_points', _totalPoints);
+    await prefs.setInt('daily_points', _dailyPoints);
     notifyListeners();
   }
 
@@ -213,21 +285,31 @@ class GameProvider extends ChangeNotifier {
     int activeCount = min(2 + _memoryLevel, size - 1);
     _memoryPattern = List.generate(size, (_) => false);
     final indices = List.generate(size, (i) => i)..shuffle(_rng);
+
+    final sequence = <int>[];
     for (int i = 0; i < activeCount; i++) {
       _memoryPattern[indices[i]] = true;
+      sequence.add(indices[i]);
     }
     _playerPattern = List.filled(size, null);
 
-    for (int flash = 0; flash < 3; flash++) {
-      _showingPattern = true;
+    _showingPattern = true;
+    _highlightedIndex = null;
+    notifyListeners();
+    await Future.delayed(const Duration(milliseconds: 1000));
+
+    // Reveal tiles one by one
+    for (int idx in sequence) {
+      _highlightedIndex = idx;
       notifyListeners();
-      await Future.delayed(const Duration(milliseconds: 700));
-      _showingPattern = false;
+      await Future.delayed(const Duration(milliseconds: 600));
+      _highlightedIndex = null;
       notifyListeners();
-      if (flash < 2) {
-        await Future.delayed(const Duration(milliseconds: 300));
-      }
+      await Future.delayed(const Duration(milliseconds: 200));
     }
+
+    _showingPattern = false;
+    notifyListeners();
   }
 
   void tapMemoryCell(int index) {
@@ -243,8 +325,8 @@ class GameProvider extends ChangeNotifier {
     if (tapped >= activeCount) {
       final anyWrong = _playerPattern.any((p) => p == false);
       if (!anyWrong) {
-        _score += 100 * _memoryLevel;
-        _totalPoints += 10 * _memoryLevel;
+        _score += 20; // 20 pts per successful round
+        _addPoints(20); // 20 pts per successful round
         _state = GameState.roundComplete;
         _checkMemoryHighScore();
       } else {
@@ -340,19 +422,32 @@ class GameProvider extends ChangeNotifier {
     // Store the full sequence; UI will use missingIndex to draw the '?'
     _logicPattern = fullSeq;
 
+    // Create set of numbers in the sequence to avoid duplicates
+    final sequenceNumbers = fullSeq.toSet();
+
     final wrongs = <int>{};
     int attempts = 0;
-    while (wrongs.length < 3 && attempts < 50) {
+    while (wrongs.length < 3 && attempts < 100) {
       attempts++;
       final delta = _rng.nextInt(12) - 6;
       final wrong = _logicAnswer! + delta;
-      if (wrong != _logicAnswer && wrong > 0) wrongs.add(wrong);
+      // Ensure wrong answer is not equal to correct answer, not in sequence, and is positive
+      if (wrong != _logicAnswer &&
+          !sequenceNumbers.contains(wrong) &&
+          wrong > 0) {
+        wrongs.add(wrong);
+      }
     }
+
+    // Fill remaining slots with sufficiently different numbers
     int extra = _logicAnswer! + 7;
     while (wrongs.length < 3) {
-      if (extra != _logicAnswer!) wrongs.add(extra);
+      if (extra != _logicAnswer && !sequenceNumbers.contains(extra)) {
+        wrongs.add(extra);
+      }
       extra++;
     }
+
     _logicChoices = [_logicAnswer!, ...wrongs]..shuffle(_rng);
     notifyListeners();
   }
@@ -361,7 +456,7 @@ class GameProvider extends ChangeNotifier {
     _logicQuestionsAnswered++;
     if (answer == _logicAnswer) {
       _logicSessionScore += 20;
-      _totalPoints += 20;
+      _addPoints(20); // 20 pts per correct logic answer
     }
     _state = GameState.finished;
     _checkLogicHighScore();
@@ -380,6 +475,11 @@ class GameProvider extends ChangeNotifier {
       _newLogicRecord = true;
       _saveHighScore('logic_high_score', _logicHighScore);
     }
+  }
+
+  // ─── Workout Completion ───────────────────────────────────────────────
+  void completeWorkout() {
+    _addPoints(100); // Award 100 points for completing a G-Timer workout
   }
 
   // ─── Math Sprint ──────────────────────────────────────────────────────
@@ -447,7 +547,7 @@ class GameProvider extends ChangeNotifier {
       _mathScore++;
       _mathStreak++;
       if (_mathStreak > _mathMaxStreak) _mathMaxStreak = _mathStreak;
-      _totalPoints += 5;
+      _addPoints(20); // 20 pts per correct math answer
       switch (_mathOp) {
         case '+':
           _mathPlusScore++;
@@ -525,9 +625,7 @@ class GameProvider extends ChangeNotifier {
       _schulteTimer?.cancel();
       _schulteComplete = true;
       _state = GameState.roundComplete;
-      // Points: 200 - elapsed, minimum 10
-      final pts = max(10, 200 - _schulteTimeElapsed);
-      _totalPoints += pts;
+      _addPoints(4); // 4 pts for completing a Schulte grid
       _checkSchulteHighScore();
     }
     notifyListeners();
@@ -602,7 +700,7 @@ class GameProvider extends ChangeNotifier {
       _stroopScore++;
       _stroopStreak++;
       if (_stroopStreak > _stroopMaxStreak) _stroopMaxStreak = _stroopStreak;
-      _totalPoints += 10;
+      _addPoints(20); // 20 pts per correct Stroop answer
     } else {
       _stroopStreak = 0;
     }

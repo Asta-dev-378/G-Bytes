@@ -4,8 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../games/training_hub_screen.dart';
 import '../knowledge/did_you_know_screen.dart';
+import '../../models/league.dart';
+import '../profile/profile_screen.dart';
 
 class GZoneScreen extends StatelessWidget {
   const GZoneScreen({super.key});
@@ -14,6 +17,7 @@ class GZoneScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = context.watch<UserProvider>();
     final game = context.watch<GameProvider>();
+    final primary = context.watch<SettingsProvider>().appSeedColor;
 
     return Scaffold(
       body: CustomScrollView(
@@ -24,41 +28,52 @@ class GZoneScreen extends StatelessWidget {
             backgroundColor: const Color(0xFFF5F5F5),
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
-              title: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hello, ${user.userName ?? 'Champion'} 👋',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w500,
+              title: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hello, ${user.userName ?? 'Champion'} 👋',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  Text(
-                    'G-Zone',
-                    style: GoogleFonts.poppins(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1A1A1A),
+                    Text(
+                      'G-Zone',
+                      style: GoogleFonts.poppins(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF1A1A1A),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             actions: [
               Padding(
                 padding: const EdgeInsets.only(right: 16),
-                child: CircleAvatar(
-                  backgroundColor: const Color(0xFFFF8C00),
-                  radius: 20,
-                  child: Text(
-                    (user.userName?[0] ?? 'G').toUpperCase(),
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                    );
+                  },
+                  child: CircleAvatar(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    radius: 20,
+                    child: Text(
+                      (user.userName?[0] ?? 'G').toUpperCase(),
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ),
@@ -72,8 +87,19 @@ class GZoneScreen extends StatelessWidget {
                 // Calendar + Streaks Section
                 _CalendarStreakCard(
                   streak: game.streak,
-                  totalPoints: game.totalPoints,
+                  dailyPoints: game.dailyPoints,
+                  primary: primary,
                 ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
+                const SizedBox(height: 16),
+
+                // League Badge
+                _LeagueBadgeCard(
+                  league: game.league,
+                  totalPoints: game.totalPoints,
+                  progress: game.leagueProgress,
+                  pointsToNext: game.pointsToNextLeague,
+                  isMax: game.isMaxLeague,
+                ).animate(delay: 100.ms).fadeIn().slideY(begin: 0.15, end: 0),
                 const SizedBox(height: 22),
 
                 // Section Label
@@ -82,6 +108,7 @@ class GZoneScreen extends StatelessWidget {
 
                 // Brain Game Card
                 _BrainGameCard(
+                  primary: primary,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -109,26 +136,13 @@ class GZoneScreen extends StatelessWidget {
   }
 
   Widget _sectionLabel(String text) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          text,
-          style: GoogleFonts.poppins(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF1A1A1A),
-          ),
-        ),
-        Text(
-          'See all',
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            color: const Color(0xFFFF8C00),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
+    return Text(
+      text,
+      style: GoogleFonts.poppins(
+        fontSize: 17,
+        fontWeight: FontWeight.w700,
+        color: const Color(0xFF1A1A1A),
+      ),
     );
   }
 }
@@ -137,8 +151,13 @@ class GZoneScreen extends StatelessWidget {
 
 class _CalendarStreakCard extends StatelessWidget {
   final int streak;
-  final int totalPoints;
-  const _CalendarStreakCard({required this.streak, required this.totalPoints});
+  final int dailyPoints;
+  final Color primary;
+  const _CalendarStreakCard({
+    required this.streak,
+    required this.dailyPoints,
+    required this.primary,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -199,15 +218,13 @@ class _CalendarStreakCard extends StatelessWidget {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFF8C00), Color(0xFFFFB347)],
+                      gradient: LinearGradient(
+                        colors: [primary, primary.withValues(alpha: 0.7)],
                       ),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(
-                            0xFFFF8C00,
-                          ).withValues(alpha: 0.35),
+                          color: primary.withValues(alpha: 0.35),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -273,6 +290,7 @@ class _CalendarStreakCard extends StatelessWidget {
             firstWeekday: firstDay,
             today: today,
             streak: streak,
+            primary: primary,
           ),
 
           const SizedBox(height: 16),
@@ -284,8 +302,8 @@ class _CalendarStreakCard extends StatelessWidget {
             children: [
               _StatBubble(
                 icon: Icons.star_rounded,
-                value: '$totalPoints pts',
-                label: 'Total XP',
+                value: '$dailyPoints pts',
+                label: 'XP Earned Today',
                 color: const Color(0xFF6C63FF),
               ),
               const SizedBox(width: 12),
@@ -293,7 +311,7 @@ class _CalendarStreakCard extends StatelessWidget {
                 icon: Icons.emoji_events_rounded,
                 value: '$streak days',
                 label: 'Best Streak',
-                color: const Color(0xFFFF8C00),
+                color: primary,
               ),
               const SizedBox(width: 12),
               _StatBubble(
@@ -333,11 +351,13 @@ class _CalendarGrid extends StatelessWidget {
   final int firstWeekday;
   final int today;
   final int streak;
+  final Color primary;
   const _CalendarGrid({
     required this.daysInMonth,
     required this.firstWeekday,
     required this.today,
     required this.streak,
+    required this.primary,
   });
 
   @override
@@ -356,17 +376,16 @@ class _CalendarGrid extends StatelessWidget {
               return const SizedBox(width: 32, height: 32);
             }
             final isToday = day == today;
-            final isPast = day < today;
-            final isStreakDay = isPast && day >= (today - streak);
+            final isStreakDay = day <= today && day >= (today - streak + 1);
 
             Color bg = Colors.transparent;
             Color textColor = const Color(0xFF1A1A1A);
             if (isToday) {
-              bg = const Color(0xFFFF8C00);
+              bg = primary;
               textColor = Colors.white;
             } else if (isStreakDay) {
-              bg = const Color(0xFFFF8C00).withValues(alpha: 0.15);
-              textColor = const Color(0xFFFF8C00);
+              bg = primary.withValues(alpha: 0.15);
+              textColor = primary;
             }
 
             return SizedBox(
@@ -454,7 +473,8 @@ class _StatBubble extends StatelessWidget {
 
 class _BrainGameCard extends StatelessWidget {
   final VoidCallback onTap;
-  const _BrainGameCard({required this.onTap});
+  final Color primary;
+  const _BrainGameCard({required this.onTap, required this.primary});
 
   @override
   Widget build(BuildContext context) {
@@ -479,12 +499,12 @@ class _BrainGameCard extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: const Color(0xFFFF8C00).withValues(alpha: 0.12),
+                color: primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(15),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.psychology_alt_rounded,
-                color: Color(0xFFFF8C00),
+                color: primary,
                 size: 30,
               ),
             ),
@@ -511,11 +531,7 @@ class _BrainGameCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 16,
-              color: Color(0xFFFF8C00),
-            ),
+            Icon(Icons.arrow_forward_ios_rounded, size: 16, color: primary),
           ],
         ),
       ),
@@ -590,6 +606,126 @@ class _DidYouKnowCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── League Badge Card ──────────────────────────────────────────────────────
+
+class _LeagueBadgeCard extends StatelessWidget {
+  final LeagueInfo league;
+  final int totalPoints;
+  final double progress;
+  final int pointsToNext;
+  final bool isMax;
+
+  const _LeagueBadgeCard({
+    required this.league,
+    required this.totalPoints,
+    required this.progress,
+    required this.pointsToNext,
+    required this.isMax,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: league.bgColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: league.color.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: league.color.withValues(alpha: 0.1),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // League icon
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: league.color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: league.color.withValues(alpha: 0.4),
+                width: 2,
+              ),
+            ),
+            child: Icon(league.icon, color: league.color, size: 28),
+          ),
+          const SizedBox(width: 16),
+
+          // League name + progress
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  league.displayName,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                    color: league.color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isMax
+                      ? 'Max League Reached! 🏆'
+                      : '$pointsToNext pts to next level',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: league.color.withValues(alpha: 0.12),
+                    valueColor: AlwaysStoppedAnimation(league.color),
+                    minHeight: 8,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          // Total points badge
+          Column(
+            children: [
+              Text(
+                '$totalPoints',
+                style: GoogleFonts.poppins(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: league.color,
+                ),
+              ),
+              Text(
+                'pts',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

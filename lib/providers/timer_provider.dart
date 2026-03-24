@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 
 enum TimerMode { countdown, stopwatch }
 
@@ -11,6 +12,11 @@ class TimerProvider extends ChangeNotifier {
   Duration _duration = const Duration(minutes: 25);
   Duration _elapsed = Duration.zero;
   Timer? _timer;
+
+  // Sound control — synced from SettingsProvider via timer_screen
+  bool soundEnabled = true;
+  final AudioPlayer _tickPlayer = AudioPlayer();
+  final AudioPlayer _stopPlayer = AudioPlayer();
 
   // Preset durations
   final List<Duration> presets = const [
@@ -44,6 +50,26 @@ class TimerProvider extends ChangeNotifier {
 
   bool get isFinished => _mode == TimerMode.countdown && _elapsed >= _duration;
 
+  Future<void> _playTick() async {
+    if (!soundEnabled) return;
+    try {
+      await _tickPlayer.stop();
+      await _tickPlayer.setAsset('assets/audio/Tick2.mp3');
+      await _tickPlayer.setVolume(0.7);
+      await _tickPlayer.play();
+    } catch (_) {}
+  }
+
+  Future<void> _playStop() async {
+    if (!soundEnabled) return;
+    try {
+      await _stopPlayer.stop();
+      await _stopPlayer.setAsset('assets/audio/Stop.mp3');
+      await _stopPlayer.setVolume(1.0);
+      await _stopPlayer.play();
+    } catch (_) {}
+  }
+
   void setMode(TimerMode mode) {
     reset();
     _mode = mode;
@@ -64,6 +90,9 @@ class TimerProvider extends ChangeNotifier {
       if (isFinished) {
         _timer?.cancel();
         _status = TimerStatus.idle;
+        _playStop();
+      } else {
+        _playTick();
       }
       notifyListeners();
     });
@@ -73,6 +102,7 @@ class TimerProvider extends ChangeNotifier {
   void pause() {
     _timer?.cancel();
     _status = TimerStatus.paused;
+    _tickPlayer.stop();
     notifyListeners();
   }
 
@@ -80,7 +110,14 @@ class TimerProvider extends ChangeNotifier {
     _timer?.cancel();
     _status = TimerStatus.idle;
     _elapsed = Duration.zero;
+    _tickPlayer.stop();
+    _stopPlayer.stop();
     notifyListeners();
+  }
+
+  void stopAllSounds() {
+    _tickPlayer.stop();
+    _stopPlayer.stop();
   }
 
   void adjustDuration(int minutes) {
@@ -94,6 +131,8 @@ class TimerProvider extends ChangeNotifier {
   @override
   void dispose() {
     _timer?.cancel();
+    _tickPlayer.dispose();
+    _stopPlayer.dispose();
     super.dispose();
   }
 }

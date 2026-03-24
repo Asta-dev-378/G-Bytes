@@ -5,22 +5,18 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/settings_provider.dart';
+import 'about_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
-
-  @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends State<ProfileScreen> {
-  bool _soundFx = true;
-  bool _notifications = true;
 
   @override
   Widget build(BuildContext context) {
     final user = context.watch<UserProvider>();
     final game = context.watch<GameProvider>();
+    final settings = context.watch<SettingsProvider>();
+    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
@@ -28,12 +24,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Profile header
+            // ── Profile Header ─────────────────────────────────
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF8C00), Color(0xFFFFB347)],
+                gradient: LinearGradient(
+                  colors: [
+                    settings.appSeedColor,
+                    settings.appSeedColor.withAlpha(180),
+                  ],
                 ),
                 borderRadius: BorderRadius.circular(22),
               ),
@@ -47,7 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: GoogleFonts.poppins(
                         fontSize: 28,
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFFFF8C00),
+                        color: settings.appSeedColor,
                       ),
                     ),
                   ),
@@ -73,7 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Level ${game.level} • ${game.totalPoints} pts',
+                          '${game.league.displayName} • ${game.totalPoints} pts',
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontSize: 13,
@@ -87,51 +86,204 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ).animate().fadeIn(duration: 400.ms),
             const SizedBox(height: 24),
-            // Calendar Removed
 
-            // Sound & Notifications
+            // ── Sound ──────────────────────────────────────────
             _SectionCard(
-              title: 'Sound & Notifications',
-              child: Column(
-                children: [
-                  _ToggleRow(
-                    label: 'Sound Effects',
-                    icon: Icons.volume_up_outlined,
-                    value: _soundFx,
-                    onChanged: (v) => setState(() => _soundFx = v),
-                  ),
-                  const Divider(height: 1),
-                  _ToggleRow(
-                    label: 'Push Notifications',
-                    icon: Icons.notifications_outlined,
-                    value: _notifications,
-                    onChanged: (v) => setState(() => _notifications = v),
-                  ),
-                ],
+              title: 'Sound',
+              child: _ToggleRow(
+                label: 'Sound Effects',
+                subtitle: 'Timer audio cues & tick sounds',
+                icon: Icons.volume_up_outlined,
+                value: settings.soundEffectsEnabled,
+                onChanged: settings.setSoundEffects,
+                activeColor: primary,
+              ),
+            ).animate(delay: 100.ms).fadeIn(),
+            const SizedBox(height: 16),
+
+            // ── Timer Animation Dropdown ───────────────────────
+            _SectionCard(
+              title: 'Timer Animation',
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Animation style for interval timer',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _StyledDropdown<TimerAnimationType>(
+                      value: settings.timerAnimation,
+                      items: TimerAnimationType.values.map((type) {
+                        final d = _animationData(type);
+                        return DropdownMenuItem(
+                          value: type,
+                          child: Row(
+                            children: [
+                              Text(
+                                d.emoji,
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      d.label,
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      d.description,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (v) {
+                        if (v != null) settings.setTimerAnimation(v);
+                      },
+                      accentColor: primary,
+                    ),
+                  ],
+                ),
               ),
             ).animate(delay: 150.ms).fadeIn(),
             const SizedBox(height: 16),
 
-            // General
+            // ── Color Theme Dropdown ───────────────────────────
+            _SectionCard(
+              title: 'Color Theme',
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Choose your app accent color',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _StyledDropdown<AppThemeColor>(
+                      value: settings.appThemeColor,
+                      items: AppThemeColor.values.map((color) {
+                        final d = _colorData(color);
+                        return DropdownMenuItem(
+                          value: color,
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 26,
+                                height: 26,
+                                decoration: BoxDecoration(
+                                  color: d.color,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: d.color.withAlpha(80),
+                                      blurRadius: 6,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                '${d.emoji}  ${d.label}',
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (v) {
+                        if (v != null) settings.setAppThemeColor(v);
+                      },
+                      accentColor: settings.appSeedColor,
+                    ),
+                  ],
+                ),
+              ),
+            ).animate(delay: 200.ms).fadeIn(),
+            const SizedBox(height: 16),
+
+            // ── General / About ────────────────────────────────
             _SectionCard(
               title: 'General',
               child: ListTile(
-                leading: const Icon(Icons.help_outline_rounded),
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        settings.appSeedColor,
+                        settings.appSeedColor.withAlpha(180),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: settings.appSeedColor.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      'G',
+                      style: GoogleFonts.russoOne(
+                        fontSize: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
                 title: Text(
                   'About G-Bytes',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  'Version 1.0.0 — Our story & what\'s coming',
+                  style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
                 ),
                 trailing: const Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 14,
                   color: Colors.grey,
                 ),
-                onTap: () {},
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AboutScreen()),
+                ),
               ),
-            ).animate(delay: 200.ms).fadeIn(),
+            ).animate(delay: 250.ms).fadeIn(),
             const SizedBox(height: 16),
 
-            // Sign Out
+            // ── Sign Out ───────────────────────────────────────
             ElevatedButton.icon(
               onPressed: () {
                 context.read<UserProvider>().logout();
@@ -149,8 +301,130 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+  _AnimData _animationData(TimerAnimationType type) {
+    switch (type) {
+      case TimerAnimationType.jellyfish:
+        return _AnimData(
+          emoji: '🪼',
+          label: 'Jellyfish Glow',
+          description: 'Flowing tentacles & radial glow rings',
+          color: const Color(0xFF00E5FF),
+        );
+      case TimerAnimationType.bubbleBurst:
+        return _AnimData(
+          emoji: '🫧',
+          label: 'Bubble Burst',
+          description: 'Expanding bubbles that burst on phase change',
+          color: const Color(0xFF7C4DFF),
+        );
+      case TimerAnimationType.starDust:
+        return _AnimData(
+          emoji: '✨',
+          label: 'Star Dust',
+          description: 'Twinkling star particles & shooting trails',
+          color: const Color(0xFFFFB300),
+        );
+    }
+  }
+
+  _ColorData _colorData(AppThemeColor color) {
+    switch (color) {
+      case AppThemeColor.orange:
+        return _ColorData(
+          emoji: '🔶',
+          label: 'Orange',
+          color: const Color(
+            0xFFFF8C00,
+          ), // orange stays in the color-picker data item
+        );
+      case AppThemeColor.cyan:
+        return _ColorData(
+          emoji: '🩵',
+          label: 'Cyan',
+          color: const Color(0xFF00BCD4),
+        );
+      case AppThemeColor.purple:
+        return _ColorData(
+          emoji: '💜',
+          label: 'Purple',
+          color: const Color(0xFF7C4DFF),
+        );
+    }
+  }
 }
 
+// ── Data helpers ──────────────────────────────────────────────────
+class _AnimData {
+  final String emoji;
+  final String label;
+  final String description;
+  final Color color;
+  _AnimData({
+    required this.emoji,
+    required this.label,
+    required this.description,
+    required this.color,
+  });
+}
+
+class _ColorData {
+  final String emoji;
+  final String label;
+  final Color color;
+  _ColorData({required this.emoji, required this.label, required this.color});
+}
+
+// ── Styled Dropdown ───────────────────────────────────────────────
+class _StyledDropdown<T> extends StatelessWidget {
+  final T value;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T?> onChanged;
+  final Color accentColor;
+
+  const _StyledDropdown({
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accentColor, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withAlpha(25),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          isExpanded: true,
+          icon: Icon(Icons.keyboard_arrow_down_rounded, color: accentColor),
+          items: items,
+          onChanged: onChanged,
+          selectedItemBuilder: (context) => items.map((item) {
+            return Align(alignment: Alignment.centerLeft, child: item.child);
+          }).toList(),
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          itemHeight: 60,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Section Card ──────────────────────────────────────────────────
 class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
@@ -185,37 +459,51 @@ class _SectionCard extends StatelessWidget {
             ),
           ),
           child,
-          const SizedBox(height: 8),
         ],
       ),
     );
   }
 }
 
+// ── Toggle Row ────────────────────────────────────────────────────
 class _ToggleRow extends StatelessWidget {
   final String label;
+  final String? subtitle;
   final IconData icon;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final Future<void> Function(bool) onChanged;
+  final Color activeColor;
+
   const _ToggleRow({
     required this.label,
+    this.subtitle,
     required this.icon,
     required this.value,
     required this.onChanged,
+    required this.activeColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon),
+      leading: Icon(icon, color: value ? activeColor : Colors.grey),
       title: Text(
         label,
         style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
       ),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle!,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: Colors.grey.shade500,
+              ),
+            )
+          : null,
       trailing: Switch.adaptive(
         value: value,
-        onChanged: onChanged,
-        activeTrackColor: const Color(0xFFFF8C00),
+        onChanged: (v) => onChanged(v),
+        activeTrackColor: activeColor,
       ),
     );
   }

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- G-Bytes brand orange — matches the default app seed color (0xFFFF8C00) -->
+    <color name="splash_bg">#FF8C00</color>
+</resources>

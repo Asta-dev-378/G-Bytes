@@ -33,8 +33,11 @@ class TrainingHubScreen extends StatelessWidget {
                     ? const LinearGradient(
                         colors: [Color(0xFF6C63FF), Color(0xFF20BC68)],
                       )
-                    : const LinearGradient(
-                        colors: [Color(0xFFFF8C00), Color(0xFFFFB347)],
+                    : LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(context).colorScheme.primary.withAlpha(180),
+                        ],
                       ),
                 borderRadius: BorderRadius.circular(22),
               ),
@@ -52,10 +55,10 @@ class TrainingHubScreen extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Level ${game.level} / ${game.totalLevels}',
+                          game.league.displayName,
                           style: GoogleFonts.poppins(
                             color: Colors.white,
-                            fontSize: 24,
+                            fontSize: 22,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -63,7 +66,7 @@ class TrainingHubScreen extends StatelessWidget {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(6),
                           child: LinearProgressIndicator(
-                            value: game.level / game.totalLevels,
+                            value: game.leagueProgress,
                             backgroundColor: Colors.white30,
                             valueColor: const AlwaysStoppedAnimation(
                               Colors.white,
@@ -110,7 +113,7 @@ class TrainingHubScreen extends StatelessWidget {
               icon: '🧠',
               title: 'Memory Game',
               description: 'Memorize blinking tiles — levels get harder!',
-              color: isDark ? Colors.orangeAccent : const Color(0xFFFF8C00),
+              color: Theme.of(context).colorScheme.primary,
               delay: 100,
               badge: game.memoryHighScore > 0
                   ? '🏆 ${game.memoryHighScore}'

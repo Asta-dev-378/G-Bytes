@@ -41,8 +41,11 @@ dependencies:
   shared_preferences: ^2.5.4
   intl: ^0.20.2
   percent_indicator: ^4.2.5
-  audioplayers: ^6.6.0
   file_picker: ^10.3.10
+  just_audio: ^0.10.5
+  path_provider: ^2.1.5
+  audio_service: ^0.18.18
+  flutter_local_notifications: ^17.1.0
 
 dev_dependencies:
   flutter_test:
@@ -54,6 +57,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -68,7 +72,27 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - lib/screens/timer/timer_audio/
+    - assets/audio/
+    - assets/fonts/
+
+  # Bundled Poppins fonts — required because google_fonts runtime fetching
+  # is disabled (allowRuntimeFetching = false). Without bundling the fonts
+  # here, google_fonts can't find them and falls back to the system font.
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Poppins-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Poppins-Black.ttf
+          weight: 900
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
