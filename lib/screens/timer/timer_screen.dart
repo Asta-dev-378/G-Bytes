@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,9 +7,14 @@ import 'package:percent_indicator/percent_indicator.dart';
 import '../../providers/timer_provider.dart';
 import '../../providers/settings_provider.dart';
 
-class TimerScreen extends StatelessWidget {
+class TimerScreen extends StatefulWidget {
   const TimerScreen({super.key});
 
+  @override
+  State<TimerScreen> createState() => _TimerScreenState();
+}
+
+class _TimerScreenState extends State<TimerScreen> {
   String _fmt(Duration d) {
     String two(int n) => n.toString().padLeft(2, '0');
     return '${two(d.inMinutes)}:${two(d.inSeconds % 60)}';
@@ -104,7 +110,7 @@ class TimerScreen extends StatelessWidget {
               ).animate().fadeIn(delay: 150.ms),
             const SizedBox(height: 48),
 
-            // Circular timer
+            // Circular timer layer
             CircularPercentIndicator(
               radius: 130,
               lineWidth: 12,
@@ -267,3 +273,4 @@ class _ModeBtn extends StatelessWidget {
     );
   }
 }
+

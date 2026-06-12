@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
+import '../../features/streak/models/daily_task.dart';
 
 class StroopGameScreen extends StatefulWidget {
   const StroopGameScreen({super.key});
@@ -13,6 +14,7 @@ class StroopGameScreen extends StatefulWidget {
 
 class _StroopGameScreenState extends State<StroopGameScreen> {
   bool _started = false;
+  bool _sessionCompleted = false; // guard: award task XP only once
 
   @override
   void dispose() {
@@ -196,7 +198,9 @@ class _StroopGameScreenState extends State<StroopGameScreen> {
                   border: Border.all(color: Colors.red.shade300),
                 ),
                 child: Text(
-                  '🔥 ${game.stroopStreak} streak!',
+                  game.stroopStreak >= 5 
+                      ? '🔥 On Fire! (+5/ans)' 
+                      : '🔥 ${game.stroopStreak} streak!',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -326,8 +330,16 @@ class _StroopGameScreenState extends State<StroopGameScreen> {
   }
 
   Widget _buildResult(GameProvider game, Color accent) {
+    // Award task XP once when Stroop session ends
+    if (!_sessionCompleted) {
+      _sessionCompleted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<GameProvider>().markGameComplete(TaskType.stroop);
+      });
+    }
+
     final accuracy = game.stroopTotal > 0
-        ? (game.stroopScore / game.stroopTotal * 100).round()
+        ? (game.stroopCorrectCount / game.stroopTotal * 100).round()
         : 0;
 
     return Center(
@@ -372,7 +384,8 @@ class _StroopGameScreenState extends State<StroopGameScreen> {
                   color: const Color(0xFFFFB300),
                 ),
               ).animate().shimmer(duration: 1200.ms),
-            _StatRow('Correct', '${game.stroopScore}', accent),
+            _StatRow('Points Earned', '${game.stroopScore} 📈', accent),
+            _StatRow('Correct', '${game.stroopCorrectCount}', accent),
             _StatRow('Attempted', '${game.stroopTotal}', accent),
             _StatRow('Accuracy', '$accuracy%', accent),
             _StatRow('Best Streak', '${game.stroopMaxStreak} 🔥', accent),
@@ -380,7 +393,10 @@ class _StroopGameScreenState extends State<StroopGameScreen> {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                setState(() => _started = false);
+                setState(() {
+                  _started = false;
+                  _sessionCompleted = false; // allow re-award on next game
+                });
                 _start();
               },
               icon: const Icon(Icons.refresh_rounded),

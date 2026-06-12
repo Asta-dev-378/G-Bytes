@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
+import '../../features/streak/models/daily_task.dart';
 
 class MathSprintScreen extends StatefulWidget {
   const MathSprintScreen({super.key});
@@ -13,6 +14,7 @@ class MathSprintScreen extends StatefulWidget {
 
 class _MathSprintScreenState extends State<MathSprintScreen> {
   bool _started = false;
+  bool _sessionCompleted = false; // guard: award task XP only once
 
   void _startGame() {
     context.read<GameProvider>().startMathSprint();
@@ -58,7 +60,7 @@ class _MathSprintScreenState extends State<MathSprintScreen> {
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: game.state == GameState.finished
-            ? _buildResult(game)
+            ? _buildResult(game, context)
             : !_started
             ? _buildStartScreen()
             : _buildGame(game),
@@ -161,7 +163,9 @@ class _MathSprintScreenState extends State<MathSprintScreen> {
                   border: Border.all(color: Colors.red.shade300),
                 ),
                 child: Text(
-                  '🔥 ${game.mathStreak} streak!',
+                  game.mathStreak >= 5 
+                      ? '🔥 On Fire! (+3/ans)' 
+                      : '🔥 ${game.mathStreak} streak!',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -257,11 +261,19 @@ class _MathSprintScreenState extends State<MathSprintScreen> {
     );
   }
 
-  Widget _buildResult(GameProvider game) {
+  Widget _buildResult(GameProvider game, BuildContext ctx) {
+    // Award task XP once when the sprint finishes
+    if (!_sessionCompleted) {
+      _sessionCompleted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ctx.read<GameProvider>().markGameComplete(TaskType.mathSprint);
+      });
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final green = isDark ? Colors.lightGreenAccent : Colors.green;
     final accuracy = game.mathTotal > 0
-        ? (game.mathScore / game.mathTotal * 100).round()
+        ? (game.mathCorrectCount / game.mathTotal * 100).round()
         : 0;
 
     return Center(
@@ -311,7 +323,8 @@ class _MathSprintScreenState extends State<MathSprintScreen> {
                   .shimmer(duration: 1200.ms),
               const SizedBox(height: 12),
             ],
-            _statRow('Correct Answers', '${game.mathScore}'),
+            _statRow('Points Earned', '${game.mathScore} 📈'),
+            _statRow('Correct Answers', '${game.mathCorrectCount}'),
             _statRow('Total Attempted', '${game.mathTotal}'),
             _statRow('Accuracy', '$accuracy%'),
             _statRow('Best Streak', '${game.mathMaxStreak} 🔥'),
@@ -349,7 +362,10 @@ class _MathSprintScreenState extends State<MathSprintScreen> {
             const SizedBox(height: 28),
             ElevatedButton.icon(
               onPressed: () {
-                setState(() => _started = false);
+                setState(() {
+                  _started = false;
+                  _sessionCompleted = false; // allow re-award on next sprint
+                });
                 _startGame();
               },
               icon: const Icon(Icons.refresh_rounded),

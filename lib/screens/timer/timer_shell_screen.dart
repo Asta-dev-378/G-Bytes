@@ -5,6 +5,7 @@ import '../../providers/timer_provider.dart';
 import '../../providers/interval_timer_provider.dart';
 import 'timer_screen.dart';
 import 'interval_timer_setup_screen.dart';
+import 'workout_plans_screen.dart';
 
 class TimerShellScreen extends StatefulWidget {
   const TimerShellScreen({super.key});
@@ -20,12 +21,11 @@ class _TimerShellScreenState extends State<TimerShellScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
   void dispose() {
-    // Stop all sounds from both timers when exiting
     context.read<TimerProvider>().stopAllSounds();
     context.read<IntervalTimerProvider>().stopWorkout();
     _tabController.dispose();
@@ -52,38 +52,34 @@ class _TimerShellScreenState extends State<TimerShellScreen>
           unselectedLabelColor: Colors.grey.shade600,
           labelStyle: GoogleFonts.poppins(
             fontWeight: FontWeight.w700,
-            fontSize: 14,
+            fontSize: 13,
           ),
           indicatorColor: primary,
           indicatorWeight: 3,
           tabs: const [
-            Tab(text: 'Classic Timer'),
-            Tab(text: 'G-Timer'),
+            Tab(text: 'Classic'),
+            Tab(text: 'Interval'),
+            Tab(text: 'Plans'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        physics:
-            const NeverScrollableScrollPhysics(), // Prevent swipe for tighter control
+        physics: const NeverScrollableScrollPhysics(),
         children: const [
-          // Render the original timer screen, minus its own appbar
           _ClassicTimerTab(),
           IntervalTimerSetupScreen(),
+          WorkoutPlansScreen(),
         ],
       ),
     );
   }
 }
 
-// Wrapper to remove the AppBar from the original TimerScreen
-// Alternatively, we could directly modify TimerScreen to not have an AppBar.
-// For faster iteration without breaking anything else, wrapping is safer first.
 class _ClassicTimerTab extends StatelessWidget {
   const _ClassicTimerTab();
   @override
   Widget build(BuildContext context) {
-    // We will just directly modify timer_screen.dart to remove the AppBar
     return const TimerScreen();
   }
 }

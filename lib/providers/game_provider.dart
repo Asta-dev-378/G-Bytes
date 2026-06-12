@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/league.dart';
+import '../features/streak/models/daily_task.dart';
 
 enum GameType { memory, logic, mathSprint, schulte, stroop }
 
@@ -13,16 +15,23 @@ class GameProvider extends ChangeNotifier {
   GameType _currentGame = GameType.memory;
   int _score = 0;
   int _streak = 0;
+  int _bestStreak = 0;
   int _totalPoints = 0;
-  int _dailyPoints = 0;
+  int _weeklyPoints = 0;
+  List<String> _xpHistory = [];
   String _lastStreakDate = '';
+  String _weekStartDate = '';
   int? _highlightedIndex;
+
+  // ─── Daily Task System ───────────────────────────────────────────────
+  List<DailyTask> _dailyTasks = [];
+  String _taskDate = ''; // date string for which tasks were generated
 
   // High scores
   int _memoryHighScore = 0;
   int _logicHighScore = 0;
   int _mathHighScore = 0;
-  int _schulteHighScore = 0; // fastest time in seconds (lower = better)
+  int _schulteHighScore = 0;
   int _stroopHighScore = 0;
   bool _newMemoryRecord = false;
   bool _newLogicRecord = false;
@@ -39,13 +48,13 @@ class GameProvider extends ChangeNotifier {
   int get memorySize => memoryGridCols * memoryGridCols;
 
   // ─── Logic game ──────────────────────────────────────────────────────
-  List<int> _logicPattern = []; // full 5-element sequence
+  List<int> _logicPattern = [];
   int? _logicAnswer;
   List<int> _logicChoices = [];
   String _logicSeriesName = '';
   int _logicSessionScore = 0;
   int _logicQuestionsAnswered = 0;
-  int _logicMissingIndex = 4; // which position is hidden (0-4)
+  int _logicMissingIndex = 4;
 
   // ─── Math sprint ─────────────────────────────────────────────────────
   int _mathA = 0;
@@ -54,6 +63,7 @@ class GameProvider extends ChangeNotifier {
   int _mathCorrect = 0;
   List<int> _mathChoices = [];
   int _mathScore = 0;
+  int _mathCorrectCount = 0;
   int _mathTotal = 0;
   int _mathTimeLeft = 60;
   Timer? _mathTimer;
@@ -65,9 +75,9 @@ class GameProvider extends ChangeNotifier {
   int _mathLastCorrect = -1;
 
   // ─── Schulte Table ───────────────────────────────────────────────────
-  int _schulteLevel = 1; // 1=3×3, 2=4×4, 3=5×5
+  int _schulteLevel = 1;
   List<int> _schulteGrid = [];
-  int _schulteNext = 1; // next number player must tap
+  int _schulteNext = 1;
   int _schulteTimeElapsed = 0;
   int _schulteGridSize = 3;
   Timer? _schulteTimer;
@@ -79,6 +89,7 @@ class GameProvider extends ChangeNotifier {
   String _stroopInkName = 'Red';
   List<String> _stroopColorOptions = [];
   int _stroopScore = 0;
+  int _stroopCorrectCount = 0;
   int _stroopTotal = 0;
   int _stroopTimeLeft = 60;
   Timer? _stroopTimer;
@@ -101,8 +112,43 @@ class GameProvider extends ChangeNotifier {
   GameType get currentGame => _currentGame;
   int get score => _score;
   int get streak => _streak;
+  int get bestStreak => _bestStreak;
   int get totalPoints => _totalPoints;
-  int get dailyPoints => _dailyPoints;
+  int get weeklyPoints => _weeklyPoints;
+  List<String> get xpHistory => _xpHistory;
+  String get lastStreakDate => _lastStreakDate;
+  String get weekStartDate => _weekStartDate;
+
+  // ── Daily task getters ───────────────────────────────────────────────
+  List<DailyTask> get dailyTasks => List.unmodifiable(_dailyTasks);
+  int get completedTaskCount =>
+      _dailyTasks.where((t) => t.isCompleted).length;
+  bool get allTasksDoneToday =>
+      _dailyTasks.isNotEmpty &&
+      _dailyTasks.every((t) => t.isCompleted);
+  bool isTaskCompleted(TaskType type) =>
+      _dailyTasks.any((t) => t.type == type && t.isCompleted);
+
+  /// Points scored in the previous week (first xpHistory entry).
+  int get lastWeekPoints {
+    if (_xpHistory.isEmpty) return 0;
+    final parts = _xpHistory.first.split('|');
+    if (parts.length != 2) return 0;
+    return int.tryParse(parts[1]) ?? 0;
+  }
+
+  /// Returns the date when the current streak started.
+  DateTime? get streakStartDate {
+    if (_streak == 0 || _lastStreakDate.isEmpty) return null;
+    final parts = _lastStreakDate.split('-');
+    if (parts.length < 3) return null;
+    final last = DateTime(
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+      int.parse(parts[2]),
+    );
+    return last.subtract(Duration(days: _streak - 1));
+  }
 
   // League getters
   LeagueInfo get league => LeagueInfo.fromPoints(_totalPoints);
@@ -141,6 +187,7 @@ class GameProvider extends ChangeNotifier {
   int get mathCorrect => _mathCorrect;
   List<int> get mathChoices => _mathChoices;
   int get mathScore => _mathScore;
+  int get mathCorrectCount => _mathCorrectCount;
   int get mathTotal => _mathTotal;
   int get mathTimeLeft => _mathTimeLeft;
   int get mathStreak => _mathStreak;
@@ -165,6 +212,7 @@ class GameProvider extends ChangeNotifier {
   String get stroopInkName => _stroopInkName;
   List<String> get stroopColorOptions => _stroopColorOptions;
   int get stroopScore => _stroopScore;
+  int get stroopCorrectCount => _stroopCorrectCount;
   int get stroopTotal => _stroopTotal;
   int get stroopTimeLeft => _stroopTimeLeft;
   int get stroopStreak => _stroopStreak;
@@ -180,10 +228,12 @@ class GameProvider extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    await _loadHighScores();
+    await _loadData();
   }
 
-  Future<void> _loadHighScores() async {
+  // ─── Persistence ─────────────────────────────────────────────────────
+
+  Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
     _memoryHighScore = prefs.getInt('memory_high_score') ?? 0;
     _logicHighScore = prefs.getInt('logic_high_score') ?? 0;
@@ -192,64 +242,18 @@ class GameProvider extends ChangeNotifier {
     _stroopHighScore = prefs.getInt('stroop_high_score') ?? 0;
     _totalPoints = prefs.getInt('total_points') ?? 0;
     _streak = prefs.getInt('user_streak') ?? 0;
+    _bestStreak = prefs.getInt('best_streak') ?? 0;
     _lastStreakDate = prefs.getString('last_streak_date') ?? '';
+    _weeklyPoints = prefs.getInt('weekly_points') ?? 0;
+    _weekStartDate = prefs.getString('week_start_date') ?? '';
+    _xpHistory = prefs.getStringList('xp_history') ?? [];
 
-    // Reset daily points if it's a new day
-    _resetDailyPointsIfNeeded(prefs);
-    notifyListeners();
-  }
+    await _resetWeeklyPointsIfNeeded(prefs);
+    _loadOrGenerateDailyTasks(prefs);
 
-  Future<void> _resetDailyPointsIfNeeded(SharedPreferences prefs) async {
-    final today = DateTime.now();
-    final todayStr = '${today.year}-${today.month}-${today.day}';
-    final lastDate = prefs.getString('daily_points_date') ?? '';
+    // Break streak if yesterday was missed
+    _checkStreakBreak(prefs);
 
-    if (lastDate != todayStr) {
-      // New day - check if streak should break
-      if (_lastStreakDate != todayStr && _lastStreakDate.isNotEmpty) {
-        // User didn't reach 100 points yesterday
-        _streak = 0;
-        await prefs.setInt('user_streak', 0);
-      }
-      _dailyPoints = 0;
-      await prefs.setString('daily_points_date', todayStr);
-    } else {
-      _dailyPoints = prefs.getInt('daily_points') ?? 0;
-    }
-  }
-
-  Future<void> _addPoints(int pts) async {
-    final prefs = await SharedPreferences.getInstance();
-
-    // Check if we're in a new day
-    final today = DateTime.now();
-    final todayStr = '${today.year}-${today.month}-${today.day}';
-    final lastDate = prefs.getString('daily_points_date') ?? '';
-
-    if (lastDate != todayStr) {
-      // New day - reset daily points
-      _dailyPoints = 0;
-      await prefs.setString('daily_points_date', todayStr);
-    } else {
-      _dailyPoints = prefs.getInt('daily_points') ?? 0;
-    }
-
-    // Add points but cap daily total at 100
-    // Only count towards league if under 100 daily points
-    final pointsToAdd = pts.clamp(0, 100 - _dailyPoints);
-    _dailyPoints += pointsToAdd;
-    _totalPoints += pointsToAdd;
-
-    // Check if daily goal (100 pts) is reached - unlock streak
-    if (_dailyPoints >= 100 && _lastStreakDate != todayStr) {
-      _streak++;
-      _lastStreakDate = todayStr;
-      await prefs.setInt('user_streak', _streak);
-      await prefs.setString('last_streak_date', todayStr);
-    }
-
-    await prefs.setInt('total_points', _totalPoints);
-    await prefs.setInt('daily_points', _dailyPoints);
     notifyListeners();
   }
 
@@ -257,6 +261,218 @@ class GameProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(key, value);
   }
+
+  // ─── Daily Task Generation ───────────────────────────────────────────
+
+  String get _todayStr {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Loads saved tasks for today, or generates fresh ones if it's a new day.
+  void _loadOrGenerateDailyTasks(SharedPreferences prefs) {
+    _taskDate = prefs.getString('task_date') ?? '';
+    final today = _todayStr;
+
+    if (_taskDate == today) {
+      // Load persisted task completion state
+      final savedJson = prefs.getString('daily_tasks_json');
+      if (savedJson != null) {
+        try {
+          final list = jsonDecode(savedJson) as List<dynamic>;
+          _dailyTasks = list
+              .map((e) => DailyTask.fromJson(e as Map<String, dynamic>))
+              .toList();
+          return;
+        } catch (_) {}
+      }
+    }
+
+    // New day — generate fresh tasks
+    _dailyTasks = _generateTasksForDate(DateTime.now());
+    _taskDate = today;
+    _persistTasks(prefs);
+  }
+
+  /// Generates today's 3 tasks using a day-based deterministic rotation.
+  ///
+  /// Algorithm:
+  ///   day = day-of-year (1–365)
+  ///   easyGame  = GameTier.easy [day % easy.length]
+  ///   mediumGame = GameTier.medium [(day ~/ 2) % medium.length]
+  ///   hardGame  = GameTier.hard [day % hard.length]
+  ///
+  /// This means the same calendar date always yields the same tasks, but
+  /// adding new games to a tier immediately expands the rotation pool.
+  List<DailyTask> _generateTasksForDate(DateTime date) {
+    final dayOfYear = _dayOfYear(date);
+
+    final easyType = GameTier.easy[dayOfYear % GameTier.easy.length];
+    final mediumType =
+        GameTier.medium[(dayOfYear ~/ 2) % GameTier.medium.length];
+    final hardType = GameTier.hard[dayOfYear % GameTier.hard.length];
+
+    return [
+      _taskForType(easyType, slotIndex: 0),
+      _taskForType(mediumType, slotIndex: 1),
+      _taskForType(hardType, slotIndex: 2),
+    ];
+  }
+
+  int _dayOfYear(DateTime date) {
+    return date.difference(DateTime(date.year, 1, 1)).inDays + 1;
+  }
+
+  DailyTask _taskForType(TaskType type, {required int slotIndex}) {
+    final xp = [TaskXp.task1, TaskXp.task2, TaskXp.task3][slotIndex];
+    switch (type) {
+      case TaskType.mathSprint:
+        return DailyTask(
+          type: type,
+          title: 'Math Sprint',
+          description: 'Complete a full 60-second Math Sprint session',
+          icon: '⚡',
+          xpReward: xp,
+        );
+      case TaskType.memory:
+        return DailyTask(
+          type: type,
+          title: 'Memory Game',
+          description: 'Play a Memory Game session',
+          icon: '🧠',
+          xpReward: xp,
+        );
+      case TaskType.logic:
+        return DailyTask(
+          type: type,
+          title: 'Logic Game',
+          description: 'Answer at least 1 Logic sequence question',
+          icon: '🔷',
+          xpReward: xp,
+        );
+      case TaskType.schulte:
+        return DailyTask(
+          type: type,
+          title: 'Schulte Table',
+          description: 'Clear a full Schulte Table grid',
+          icon: '🔢',
+          xpReward: xp,
+        );
+      case TaskType.stroop:
+        return DailyTask(
+          type: type,
+          title: 'Stroop Effect',
+          description: 'Complete a full 60-second Stroop session',
+          icon: '🎨',
+          xpReward: xp,
+        );
+    }
+  }
+
+  Future<void> _persistTasks(SharedPreferences prefs) async {
+    final json = jsonEncode(_dailyTasks.map((t) => t.toJson()).toList());
+    await prefs.setString('daily_tasks_json', json);
+    await prefs.setString('task_date', _taskDate);
+  }
+
+  // ─── Task Completion & XP Award ──────────────────────────────────────
+
+  /// Call this when the player finishes a game session.
+  /// Awards XP for the matching daily task (once per day per type).
+  Future<void> markGameComplete(TaskType type) async {
+    // Find the task index
+    final idx = _dailyTasks.indexWhere((t) => t.type == type);
+    if (idx == -1) return; // this game isn't today's task
+    if (_dailyTasks[idx].isCompleted) return; // already done today
+
+    // Mark complete
+    _dailyTasks[idx] = _dailyTasks[idx].complete();
+
+    final xp = _dailyTasks[idx].xpReward;
+    await _awardXp(xp);
+
+    // Check if all tasks are now done → increment streak
+    if (allTasksDoneToday) {
+      await _incrementStreak();
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await _persistTasks(prefs);
+    notifyListeners();
+  }
+
+  Future<void> _awardXp(int xp) async {
+    if (xp <= 0) return;
+    final prefs = await SharedPreferences.getInstance();
+
+    await _resetWeeklyPointsIfNeeded(prefs);
+
+    _weeklyPoints += xp;
+    _totalPoints += xp;
+
+    await prefs.setInt('total_points', _totalPoints);
+    await prefs.setInt('weekly_points', _weeklyPoints);
+    notifyListeners();
+  }
+
+  Future<void> _incrementStreak() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = _todayStr;
+
+    // Don't double-count streak for the same day
+    if (_lastStreakDate == today) return;
+
+    _streak++;
+    _lastStreakDate = today;
+
+    if (_streak > _bestStreak) {
+      _bestStreak = _streak;
+      await prefs.setInt('best_streak', _bestStreak);
+    }
+
+    await prefs.setInt('user_streak', _streak);
+    await prefs.setString('last_streak_date', today);
+  }
+
+  void _checkStreakBreak(SharedPreferences prefs) {
+    if (_streak == 0 || _lastStreakDate.isEmpty) return;
+
+    final today = DateTime.now();
+    final todayStr = _todayStr;
+    final yesterday = today.subtract(const Duration(days: 1));
+    final yesterdayStr =
+        '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+
+    // Streak is still valid if last activity was today or yesterday
+    if (_lastStreakDate != todayStr && _lastStreakDate != yesterdayStr) {
+      _streak = 0;
+      prefs.setInt('user_streak', 0);
+    }
+  }
+
+  Future<void> _resetWeeklyPointsIfNeeded(SharedPreferences prefs) async {
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    final monday = todayDate.subtract(Duration(days: todayDate.weekday - 1));
+    final weekStr =
+        '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
+    final savedWeek = prefs.getString('week_start_date') ?? '';
+
+    if (savedWeek != weekStr) {
+      if (savedWeek.isNotEmpty && _weeklyPoints > 0) {
+        _xpHistory.insert(0, '$savedWeek|$_weeklyPoints');
+        await prefs.setStringList('xp_history', _xpHistory);
+      }
+      _weeklyPoints = 0;
+      _weekStartDate = weekStr;
+      await prefs.setInt('weekly_points', 0);
+      await prefs.setString('week_start_date', weekStr);
+    } else {
+      _weekStartDate = weekStr;
+    }
+  }
+
+  // ─── Shared ──────────────────────────────────────────────────────────
 
   void selectGame(GameType type) {
     _currentGame = type;
@@ -298,7 +514,6 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
     await Future.delayed(const Duration(milliseconds: 1000));
 
-    // Reveal tiles one by one
     for (int idx in sequence) {
       _highlightedIndex = idx;
       notifyListeners();
@@ -325,8 +540,7 @@ class GameProvider extends ChangeNotifier {
     if (tapped >= activeCount) {
       final anyWrong = _playerPattern.any((p) => p == false);
       if (!anyWrong) {
-        _score += 20; // 20 pts per successful round
-        _addPoints(20); // 20 pts per successful round
+        _score += _memoryLevel; // score tracks performance, not XP
         _state = GameState.roundComplete;
         _checkMemoryHighScore();
       } else {
@@ -356,7 +570,6 @@ class GameProvider extends ChangeNotifier {
   }
 
   void _generateLogicRound() {
-    // Build a full 5-element sequence first, then pick a random position to hide
     List<int> fullSeq = [];
     final type = _rng.nextInt(7);
     switch (type) {
@@ -416,22 +629,17 @@ class GameProvider extends ChangeNotifier {
         break;
     }
 
-    // Pick a random position to hide (any of the 5 positions)
     _logicMissingIndex = _rng.nextInt(5);
     _logicAnswer = fullSeq[_logicMissingIndex];
-    // Store the full sequence; UI will use missingIndex to draw the '?'
     _logicPattern = fullSeq;
 
-    // Create set of numbers in the sequence to avoid duplicates
     final sequenceNumbers = fullSeq.toSet();
-
     final wrongs = <int>{};
     int attempts = 0;
     while (wrongs.length < 3 && attempts < 100) {
       attempts++;
       final delta = _rng.nextInt(12) - 6;
       final wrong = _logicAnswer! + delta;
-      // Ensure wrong answer is not equal to correct answer, not in sequence, and is positive
       if (wrong != _logicAnswer &&
           !sequenceNumbers.contains(wrong) &&
           wrong > 0) {
@@ -439,7 +647,6 @@ class GameProvider extends ChangeNotifier {
       }
     }
 
-    // Fill remaining slots with sufficiently different numbers
     int extra = _logicAnswer! + 7;
     while (wrongs.length < 3) {
       if (extra != _logicAnswer && !sequenceNumbers.contains(extra)) {
@@ -455,11 +662,17 @@ class GameProvider extends ChangeNotifier {
   void answerLogic(int answer) {
     _logicQuestionsAnswered++;
     if (answer == _logicAnswer) {
-      _logicSessionScore += 20;
-      _addPoints(20); // 20 pts per correct logic answer
+      _logicSessionScore += 10; // tracks in-session accuracy, not XP
+    } else {
+      _logicSessionScore = max(0, _logicSessionScore - 5);
     }
     _state = GameState.finished;
     _checkLogicHighScore();
+    notifyListeners();
+  }
+
+  void stopLogicGame() {
+    _state = GameState.idle;
     notifyListeners();
   }
 
@@ -477,10 +690,8 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
-  // ─── Workout Completion ───────────────────────────────────────────────
-  void completeWorkout() {
-    _addPoints(100); // Award 100 points for completing a G-Timer workout
-  }
+  // ─── Workout Completion (kept for API compatibility) ──────────────────
+  void completeWorkout() {}
 
   // ─── Math Sprint ──────────────────────────────────────────────────────
 
@@ -488,6 +699,7 @@ class GameProvider extends ChangeNotifier {
     _mathTimer?.cancel();
     _state = GameState.playing;
     _mathScore = 0;
+    _mathCorrectCount = 0;
     _mathTotal = 0;
     _mathTimeLeft = 60;
     _mathStreak = 0;
@@ -544,10 +756,10 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
 
     if (isCorrect) {
-      _mathScore++;
+      _mathCorrectCount++;
       _mathStreak++;
       if (_mathStreak > _mathMaxStreak) _mathMaxStreak = _mathStreak;
-      _addPoints(20); // 20 pts per correct math answer
+      _mathScore += 2 + (_mathStreak >= 5 ? 1 : 0); // local session score
       switch (_mathOp) {
         case '+':
           _mathPlusScore++;
@@ -561,6 +773,7 @@ class GameProvider extends ChangeNotifier {
       }
     } else {
       _mathStreak = 0;
+      _mathScore = max(0, _mathScore - 1);
     }
     Future.delayed(const Duration(milliseconds: 300), _generateMathQuestion);
   }
@@ -603,7 +816,6 @@ class GameProvider extends ChangeNotifier {
     _newSchulteRecord = false;
     _state = GameState.playing;
 
-    // Generate shuffled numbers 1..N
     final n = _schulteGridSize * _schulteGridSize;
     _schulteGrid = List.generate(n, (i) => i + 1)..shuffle(_rng);
 
@@ -617,15 +829,13 @@ class GameProvider extends ChangeNotifier {
 
   bool tapSchulteCell(int number) {
     if (_state != GameState.playing || _schulteComplete) return false;
-    if (number != _schulteNext) return false; // wrong tap — ignore
+    if (number != _schulteNext) return false;
 
     _schulteNext++;
     if (_schulteNext > schulteTotal) {
-      // Completed!
       _schulteTimer?.cancel();
       _schulteComplete = true;
       _state = GameState.roundComplete;
-      _addPoints(4); // 4 pts for completing a Schulte grid
       _checkSchulteHighScore();
     }
     notifyListeners();
@@ -633,7 +843,6 @@ class GameProvider extends ChangeNotifier {
   }
 
   void _checkSchulteHighScore() {
-    // Lower time = better. Store fastest time.
     if (_schulteHighScore == 0 || _schulteTimeElapsed < _schulteHighScore) {
       _schulteHighScore = _schulteTimeElapsed;
       _newSchulteRecord = true;
@@ -652,6 +861,7 @@ class GameProvider extends ChangeNotifier {
   void startStroopGame() {
     _stroopTimer?.cancel();
     _stroopScore = 0;
+    _stroopCorrectCount = 0;
     _stroopTotal = 0;
     _stroopTimeLeft = 60;
     _stroopStreak = 0;
@@ -666,13 +876,10 @@ class GameProvider extends ChangeNotifier {
   }
 
   void _generateStroopRound() {
-    // Use 4 base colors; unlock more at streak >= 10
     List<String> pool = ['Red', 'Blue', 'Green', 'Yellow'];
     if (_stroopStreak >= 10) pool = _stroopColors.keys.toList();
 
-    // Ink color
     final inkName = pool[_rng.nextInt(pool.length)];
-    // Word must be different from ink
     String wordName;
     do {
       wordName = pool[_rng.nextInt(pool.length)];
@@ -682,7 +889,6 @@ class GameProvider extends ChangeNotifier {
     _stroopInkName = inkName;
     _stroopInkColor = _stroopColors[inkName]!;
 
-    // 4 choices (always include correct ink color + 3 distractors)
     final others = pool.where((c) => c != inkName).toList()..shuffle(_rng);
     _stroopColorOptions = [inkName, ...others.take(3)]..shuffle(_rng);
     _stroopAnswered = false;
@@ -697,16 +903,16 @@ class GameProvider extends ChangeNotifier {
     _stroopLastCorrect = correct;
 
     if (correct) {
-      _stroopScore++;
+      _stroopCorrectCount++;
       _stroopStreak++;
       if (_stroopStreak > _stroopMaxStreak) _stroopMaxStreak = _stroopStreak;
-      _addPoints(20); // 20 pts per correct Stroop answer
+      _stroopScore += 3 + (_stroopStreak >= 5 ? 2 : 0); // local session score
     } else {
       _stroopStreak = 0;
+      _stroopScore = max(0, _stroopScore - 2);
     }
     notifyListeners();
 
-    // Brief pause to show result, then next round
     Future.delayed(const Duration(milliseconds: 500), () {
       if (_state == GameState.playing) _generateStroopRound();
     });
@@ -738,7 +944,7 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ─── Shared ──────────────────────────────────────────────────────────
+  // ─── Game reset ──────────────────────────────────────────────────────
 
   void resetGame() {
     _mathTimer?.cancel();
@@ -746,11 +952,41 @@ class GameProvider extends ChangeNotifier {
     _stroopTimer?.cancel();
     _state = GameState.idle;
     _score = 0;
+    _mathCorrectCount = 0;
+    _stroopCorrectCount = 0;
     _newMemoryRecord = false;
     _newLogicRecord = false;
     _newMathRecord = false;
     _newSchulteRecord = false;
     _newStroopRecord = false;
+    notifyListeners();
+  }
+
+  /// Clears ALL persisted data and resets in-memory state.
+  Future<void> resetAllData() async {
+    _mathTimer?.cancel();
+    _schulteTimer?.cancel();
+    _stroopTimer?.cancel();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    _state = GameState.idle;
+    _score = 0;
+    _streak = 0;
+    _bestStreak = 0;
+    _totalPoints = 0;
+    _weeklyPoints = 0;
+    _xpHistory = [];
+    _lastStreakDate = '';
+    _weekStartDate = '';
+    _memoryHighScore = 0;
+    _logicHighScore = 0;
+    _mathHighScore = 0;
+    _schulteHighScore = 0;
+    _stroopHighScore = 0;
+    _dailyTasks = _generateTasksForDate(DateTime.now());
+    _taskDate = _todayStr;
     notifyListeners();
   }
 

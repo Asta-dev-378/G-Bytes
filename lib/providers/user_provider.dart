@@ -25,6 +25,16 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Rename without logging out.
+  Future<void> rename(String newName) async {
+    final trimmed = newName.trim();
+    if (trimmed.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_name', trimmed);
+    _userName = trimmed;
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_name');

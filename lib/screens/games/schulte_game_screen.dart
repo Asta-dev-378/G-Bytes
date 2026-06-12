@@ -1,10 +1,10 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../features/streak/models/daily_task.dart';
 
 class SchulteGameScreen extends StatefulWidget {
   const SchulteGameScreen({super.key});
@@ -18,6 +18,7 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
   bool _started = false;
   int _selectedLevel = 1;
   bool _hardMode = false;
+  bool _sessionCompleted = false; // guard: award task XP only once
 
   @override
   void dispose() {
@@ -355,7 +356,13 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
   }
 
   Widget _buildComplete(GameProvider game, Color accent) {
-    final pts = max(10, 200 - game.schulteTimeElapsed);
+    // Award task XP when the grid is fully cleared
+    if (!_sessionCompleted) {
+      _sessionCompleted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<GameProvider>().markGameComplete(TaskType.schulte);
+      });
+    }
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -406,13 +413,24 @@ class _SchulteGameScreenState extends State<SchulteGameScreen>
                   : '${game.schulteHighScore}s',
               accent: accent,
             ),
-            _ResultRow(label: 'Points earned', value: '+$pts', accent: accent),
+            _ResultRow(
+              label: 'Task XP earned',
+              value: game.isTaskCompleted(TaskType.schulte)
+                  ? '+${game.dailyTasks.firstWhere((t) => t.type == TaskType.schulte, orElse: () => game.dailyTasks.first).xpReward} XP ✅'
+                  : 'Not today\'s task',
+              accent: accent,
+            ),
             const SizedBox(height: 32),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => setState(() => _started = false),
+                    onPressed: () {
+                      setState(() {
+                        _started = false;
+                        _sessionCompleted = false; // allow re-award next session
+                      });
+                    },
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: accent, width: 2),
                       shape: RoundedRectangleBorder(

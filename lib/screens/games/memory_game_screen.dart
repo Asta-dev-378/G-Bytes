@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
+import '../../features/streak/models/daily_task.dart';
 
 class MemoryGameScreen extends StatefulWidget {
   const MemoryGameScreen({super.key});
@@ -14,6 +15,7 @@ class MemoryGameScreen extends StatefulWidget {
 class _MemoryGameScreenState extends State<MemoryGameScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _celebrateCtrl;
+  bool _sessionCompleted = false; // guard: award task XP only once
 
   @override
   void initState() {
@@ -44,6 +46,14 @@ class _MemoryGameScreenState extends State<MemoryGameScreen>
 
     if (isRoundComplete && !_celebrateCtrl.isAnimating) {
       _celebrateCtrl.forward(from: 0);
+    }
+
+    // Award task XP once when session ends (fail state)
+    if (isFailed && !_sessionCompleted) {
+      _sessionCompleted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<GameProvider>().markGameComplete(TaskType.memory);
+      });
     }
 
     return Scaffold(
@@ -128,25 +138,6 @@ class _MemoryGameScreenState extends State<MemoryGameScreen>
                             color: game.showingPattern
                                 ? orange
                                 : (isRoundComplete ? green : Colors.grey),
-                          ),
-                        ),
-                      ),
-                      // Level points badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: orange.withAlpha(30),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '+20 pts',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: orange,
                           ),
                         ),
                       ),
@@ -296,7 +287,7 @@ class _MemoryGameScreenState extends State<MemoryGameScreen>
                           ),
                         ).animate(delay: 100.ms).fadeIn().slideY(begin: 0.1),
                         Text(
-                          '+20 pts  •  Total: ${game.score}',
+                          'Total: ${game.score}',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             color: orange,
@@ -309,6 +300,13 @@ class _MemoryGameScreenState extends State<MemoryGameScreen>
                             Expanded(
                               child: OutlinedButton(
                                 onPressed: () {
+                                  // Award task XP when user leaves from round-complete
+                                  if (!_sessionCompleted) {
+                                    _sessionCompleted = true;
+                                    context
+                                        .read<GameProvider>()
+                                        .markGameComplete(TaskType.memory);
+                                  }
                                   Navigator.of(context).pop();
                                 },
                                 style: OutlinedButton.styleFrom(

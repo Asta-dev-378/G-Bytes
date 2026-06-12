@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Defines the 7 leagues × 3 sub-levels = 21 tiers.
-/// Every tier requires 100 points.
+/// Point thresholds scale exponentially up to max rank Diamond III (35,000 pts).
 class LeagueInfo {
   final String name;
   final String romanLevel; // I, II, III
@@ -57,7 +57,7 @@ class LeagueInfo {
   }
 
   static const List<LeagueInfo> _tiers = [
-    // ── Wooden (Step: 100) ───────────────────────────────────────────
+    // ── Wooden ───────────────────────────────────────────────────────
     LeagueInfo(
       name: 'Wooden',
       romanLevel: 'I',
@@ -74,7 +74,7 @@ class LeagueInfo {
       bgColor: Color(0xFFF5E6D8),
       icon: Icons.forest_rounded,
       tierIndex: 1,
-      pointsForTier: 100,
+      pointsForTier: 250,
     ),
     LeagueInfo(
       name: 'Wooden',
@@ -83,9 +83,9 @@ class LeagueInfo {
       bgColor: Color(0xFFF5E6D8),
       icon: Icons.forest_rounded,
       tierIndex: 2,
-      pointsForTier: 200,
+      pointsForTier: 500,
     ),
-    // ── Stone (Step: 200) ─────────────────────────────────────────────
+    // ── Stone ────────────────────────────────────────────────────────
     LeagueInfo(
       name: 'Stone',
       romanLevel: 'I',
@@ -93,7 +93,7 @@ class LeagueInfo {
       bgColor: Color(0xFFEEEEEE),
       icon: Icons.circle_outlined,
       tierIndex: 3,
-      pointsForTier: 300,
+      pointsForTier: 1000,
     ),
     LeagueInfo(
       name: 'Stone',
@@ -102,7 +102,7 @@ class LeagueInfo {
       bgColor: Color(0xFFEEEEEE),
       icon: Icons.circle_outlined,
       tierIndex: 4,
-      pointsForTier: 500,
+      pointsForTier: 1500,
     ),
     LeagueInfo(
       name: 'Stone',
@@ -111,9 +111,9 @@ class LeagueInfo {
       bgColor: Color(0xFFEEEEEE),
       icon: Icons.circle_outlined,
       tierIndex: 5,
-      pointsForTier: 700,
+      pointsForTier: 2000,
     ),
-    // ── Iron (Step: 300) ──────────────────────────────────────────────
+    // ── Iron ─────────────────────────────────────────────────────────
     LeagueInfo(
       name: 'Iron',
       romanLevel: 'I',
@@ -121,7 +121,7 @@ class LeagueInfo {
       bgColor: Color(0xFFECEFF1),
       icon: Icons.shield_outlined,
       tierIndex: 6,
-      pointsForTier: 900,
+      pointsForTier: 3000,
     ),
     LeagueInfo(
       name: 'Iron',
@@ -130,7 +130,7 @@ class LeagueInfo {
       bgColor: Color(0xFFECEFF1),
       icon: Icons.shield_outlined,
       tierIndex: 7,
-      pointsForTier: 1200,
+      pointsForTier: 4000,
     ),
     LeagueInfo(
       name: 'Iron',
@@ -139,9 +139,9 @@ class LeagueInfo {
       bgColor: Color(0xFFECEFF1),
       icon: Icons.shield_outlined,
       tierIndex: 8,
-      pointsForTier: 1500,
+      pointsForTier: 5000,
     ),
-    // ── Bronze (Step: 400) ────────────────────────────────────────────
+    // ── Bronze ───────────────────────────────────────────────────────
     LeagueInfo(
       name: 'Bronze',
       romanLevel: 'I',
@@ -149,7 +149,7 @@ class LeagueInfo {
       bgColor: Color(0xFFFFF3E0),
       icon: Icons.military_tech_rounded,
       tierIndex: 9,
-      pointsForTier: 1800,
+      pointsForTier: 6500,
     ),
     LeagueInfo(
       name: 'Bronze',
@@ -158,7 +158,7 @@ class LeagueInfo {
       bgColor: Color(0xFFFFF3E0),
       icon: Icons.military_tech_rounded,
       tierIndex: 10,
-      pointsForTier: 2200,
+      pointsForTier: 8000,
     ),
     LeagueInfo(
       name: 'Bronze',
@@ -167,9 +167,9 @@ class LeagueInfo {
       bgColor: Color(0xFFFFF3E0),
       icon: Icons.military_tech_rounded,
       tierIndex: 11,
-      pointsForTier: 2600,
+      pointsForTier: 10000,
     ),
-    // ── Silver (Step: 500) ────────────────────────────────────────────
+    // ── Silver ───────────────────────────────────────────────────────
     LeagueInfo(
       name: 'Silver',
       romanLevel: 'I',
@@ -177,7 +177,7 @@ class LeagueInfo {
       bgColor: Color(0xFFF5F5F5),
       icon: Icons.workspace_premium_rounded,
       tierIndex: 12,
-      pointsForTier: 3000,
+      pointsForTier: 12000,
     ),
     LeagueInfo(
       name: 'Silver',
@@ -186,7 +186,7 @@ class LeagueInfo {
       bgColor: Color(0xFFF5F5F5),
       icon: Icons.workspace_premium_rounded,
       tierIndex: 13,
-      pointsForTier: 3500,
+      pointsForTier: 14000,
     ),
     LeagueInfo(
       name: 'Silver',
@@ -195,9 +195,9 @@ class LeagueInfo {
       bgColor: Color(0xFFF5F5F5),
       icon: Icons.workspace_premium_rounded,
       tierIndex: 14,
-      pointsForTier: 4000,
+      pointsForTier: 16000,
     ),
-    // ── Gold (Step: 600) ──────────────────────────────────────────────
+    // ── Gold ─────────────────────────────────────────────────────────
     LeagueInfo(
       name: 'Gold',
       romanLevel: 'I',
@@ -205,7 +205,7 @@ class LeagueInfo {
       bgColor: Color(0xFFFFFDE7),
       icon: Icons.emoji_events_rounded,
       tierIndex: 15,
-      pointsForTier: 4500,
+      pointsForTier: 18500,
     ),
     LeagueInfo(
       name: 'Gold',
@@ -214,7 +214,7 @@ class LeagueInfo {
       bgColor: Color(0xFFFFFDE7),
       icon: Icons.emoji_events_rounded,
       tierIndex: 16,
-      pointsForTier: 5100,
+      pointsForTier: 21000,
     ),
     LeagueInfo(
       name: 'Gold',
@@ -223,9 +223,9 @@ class LeagueInfo {
       bgColor: Color(0xFFFFFDE7),
       icon: Icons.emoji_events_rounded,
       tierIndex: 17,
-      pointsForTier: 5700,
+      pointsForTier: 24000,
     ),
-    // ── Diamond (Step: 700) ───────────────────────────────────────────
+    // ── Diamond ──────────────────────────────────────────────────────
     LeagueInfo(
       name: 'Diamond',
       romanLevel: 'I',
@@ -233,7 +233,7 @@ class LeagueInfo {
       bgColor: Color(0xFFE0F7FA),
       icon: Icons.diamond_rounded,
       tierIndex: 18,
-      pointsForTier: 6300,
+      pointsForTier: 27000,
     ),
     LeagueInfo(
       name: 'Diamond',
@@ -242,7 +242,7 @@ class LeagueInfo {
       bgColor: Color(0xFFE0F7FA),
       icon: Icons.diamond_rounded,
       tierIndex: 19,
-      pointsForTier: 7000,
+      pointsForTier: 30000,
     ),
     LeagueInfo(
       name: 'Diamond',
@@ -251,7 +251,7 @@ class LeagueInfo {
       bgColor: Color(0xFFE0F7FA),
       icon: Icons.diamond_rounded,
       tierIndex: 20,
-      pointsForTier: 7700,
+      pointsForTier: 35000,
     ),
   ];
 

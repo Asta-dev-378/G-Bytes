@@ -9,6 +9,8 @@ import '../games/training_hub_screen.dart';
 import '../knowledge/did_you_know_screen.dart';
 import '../../models/league.dart';
 import '../profile/profile_screen.dart';
+import '../../features/streak/models/daily_task.dart';
+import 'xp_history_screen.dart';
 
 class GZoneScreen extends StatelessWidget {
   const GZoneScreen({super.key});
@@ -87,7 +89,11 @@ class GZoneScreen extends StatelessWidget {
                 // Calendar + Streaks Section
                 _CalendarStreakCard(
                   streak: game.streak,
-                  dailyPoints: game.dailyPoints,
+                  bestStreak: game.bestStreak,
+                  weeklyPoints: game.weeklyPoints,
+                  streakStartDate: game.streakStartDate,
+                  lastStreakDate: game.lastStreakDate,
+                  weekStartDate: game.weekStartDate,
                   primary: primary,
                 ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
                 const SizedBox(height: 16),
@@ -100,6 +106,14 @@ class GZoneScreen extends StatelessWidget {
                   pointsToNext: game.pointsToNextLeague,
                   isMax: game.isMaxLeague,
                 ).animate(delay: 100.ms).fadeIn().slideY(begin: 0.15, end: 0),
+                const SizedBox(height: 16),
+
+                // Daily Tasks Card
+                _DailyTasksCard(
+                  tasks: game.dailyTasks,
+                  completedCount: game.completedTaskCount,
+                  primary: primary,
+                ).animate(delay: 130.ms).fadeIn().slideY(begin: 0.15, end: 0),
                 const SizedBox(height: 22),
 
                 // Section Label
@@ -151,11 +165,19 @@ class GZoneScreen extends StatelessWidget {
 
 class _CalendarStreakCard extends StatelessWidget {
   final int streak;
-  final int dailyPoints;
+  final int bestStreak;
+  final int weeklyPoints;
+  final DateTime? streakStartDate;
+  final String lastStreakDate;
+  final String weekStartDate;
   final Color primary;
   const _CalendarStreakCard({
     required this.streak,
-    required this.dailyPoints,
+    required this.bestStreak,
+    required this.weeklyPoints,
+    required this.streakStartDate,
+    required this.lastStreakDate,
+    required this.weekStartDate,
     required this.primary,
   });
 
@@ -289,7 +311,9 @@ class _CalendarStreakCard extends StatelessWidget {
             daysInMonth: daysInMonth,
             firstWeekday: firstDay,
             today: today,
-            streak: streak,
+            now: now,
+            streakStartDate: streakStartDate,
+            lastStreakDate: lastStreakDate,
             primary: primary,
           ),
 
@@ -302,14 +326,22 @@ class _CalendarStreakCard extends StatelessWidget {
             children: [
               _StatBubble(
                 icon: Icons.star_rounded,
-                value: '$dailyPoints pts',
-                label: 'XP Earned Today',
+                value: '$weeklyPoints pts',
+                label: _weekLabel(weekStartDate),
                 color: const Color(0xFF6C63FF),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const XpHistoryScreen(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(width: 12),
               _StatBubble(
                 icon: Icons.emoji_events_rounded,
-                value: '$streak days',
+                value: '$bestStreak days',
                 label: 'Best Streak',
                 color: primary,
               ),
@@ -329,20 +361,32 @@ class _CalendarStreakCard extends StatelessWidget {
 
   String _monthName(int m) {
     const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
     ];
     return months[m - 1];
+  }
+
+  /// Returns a short label like "Mon Apr 7 – Sun Apr 13"
+  String _weekLabel(String weekStartStr) {
+    if (weekStartStr.isEmpty) return 'pts this week';
+    try {
+      final parts = weekStartStr.split('-');
+      if (parts.length < 3) return 'pts this week';
+      final start = DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
+      final end = start.add(const Duration(days: 6));
+      const monthAbbr = [
+        'Jan','Feb','Mar','Apr','May','Jun',
+        'Jul','Aug','Sep','Oct','Nov','Dec',
+      ];
+      return '${monthAbbr[start.month-1]} ${start.day} - ${monthAbbr[end.month-1]} ${end.day}';
+    } catch (_) {
+      return 'pts this week';
+    }
   }
 }
 
@@ -350,13 +394,17 @@ class _CalendarGrid extends StatelessWidget {
   final int daysInMonth;
   final int firstWeekday;
   final int today;
-  final int streak;
+  final DateTime now;
+  final DateTime? streakStartDate;
+  final String lastStreakDate;
   final Color primary;
   const _CalendarGrid({
     required this.daysInMonth,
     required this.firstWeekday,
     required this.today,
-    required this.streak,
+    required this.now,
+    required this.streakStartDate,
+    required this.lastStreakDate,
     required this.primary,
   });
 
@@ -364,6 +412,21 @@ class _CalendarGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final totalCells = firstWeekday + daysInMonth;
     final rows = (totalCells / 7).ceil();
+    // Copy nullable field to local for flow analysis promotion
+    final localStreakStart = streakStartDate;
+
+    // Parse lastStreakDate to know the end of streak
+    DateTime? lastStreakDay;
+    if (lastStreakDate.isNotEmpty) {
+      try {
+        final parts = lastStreakDate.split('-');
+        lastStreakDay = DateTime(
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+          int.parse(parts[2]),
+        );
+      } catch (_) {}
+    }
 
     return Column(
       children: List.generate(rows, (row) {
@@ -376,7 +439,18 @@ class _CalendarGrid extends StatelessWidget {
               return const SizedBox(width: 32, height: 32);
             }
             final isToday = day == today;
-            final isStreakDay = day <= today && day >= (today - streak + 1);
+
+            // Check if this calendar day falls within the streak range
+            // using actual dates (safe across month boundaries)
+            bool isStreakDay = false;
+            if (localStreakStart != null && lastStreakDay != null) {
+              final start = localStreakStart;
+              final end = lastStreakDay;
+              final cellDate = DateTime(now.year, now.month, day);
+              isStreakDay = !cellDate.isBefore(start) &&
+                  !cellDate.isAfter(end) &&
+                  !isToday;
+            }
 
             Color bg = Colors.transparent;
             Color textColor = const Color(0xFF1A1A1A);
@@ -427,23 +501,25 @@ class _StatBubble extends StatelessWidget {
   final String value;
   final String label;
   final Color color;
+  final VoidCallback? onTap;
+
   const _StatBubble({
     required this.icon,
     required this.value,
     required this.label,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
+    Widget content = Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
           children: [
             Icon(icon, color: color, size: 20),
             const SizedBox(height: 4),
@@ -461,11 +537,22 @@ class _StatBubble extends StatelessWidget {
                 fontSize: 10,
                 color: Colors.grey.shade500,
               ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
-      ),
-    );
+      );
+
+    if (onTap != null) {
+      content = GestureDetector(
+        onTap: onTap,
+        child: content,
+      );
+    }
+
+    return Expanded(child: content);
   }
 }
 
@@ -726,6 +813,255 @@ class _LeagueBadgeCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Daily Tasks Card ─────────────────────────────────────────────────────────
+
+class _DailyTasksCard extends StatelessWidget {
+  final List<DailyTask> tasks;
+  final int completedCount;
+  final Color primary;
+
+  const _DailyTasksCard({
+    required this.tasks,
+    required this.completedCount,
+    required this.primary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final total = tasks.isEmpty ? 3 : tasks.length;
+    final allDone = completedCount >= total && total > 0;
+    final progress = total > 0 ? completedCount / total : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Daily Tasks',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  Text(
+                    allDone
+                        ? 'All done! Come back tomorrow 🌟'
+                        : '$completedCount / $total tasks complete',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: allDone ? primary : Colors.grey.shade500,
+                      fontWeight:
+                          allDone ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+              if (allDone)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF20BC68).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '🎉 All Done!',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF20BC68),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 7,
+              backgroundColor: Colors.grey.shade100,
+              valueColor: AlwaysStoppedAnimation(
+                allDone ? const Color(0xFF20BC68) : primary,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Task rows
+          if (tasks.isEmpty)
+            Center(
+              child: Text(
+                'Loading tasks...',
+                style: GoogleFonts.poppins(
+                  color: Colors.grey,
+                  fontSize: 13,
+                ),
+              ),
+            )
+          else
+            ...tasks.asMap().entries.map((entry) {
+              final i = entry.key;
+              final task = entry.value;
+              return _TaskRow(
+                task: task,
+                slotIndex: i,
+                primary: primary,
+              );
+            }),
+        ],
+      ),
+    );
+  }
+}
+
+class _TaskRow extends StatelessWidget {
+  final DailyTask task;
+  final int slotIndex;
+  final Color primary;
+
+  const _TaskRow({
+    required this.task,
+    required this.slotIndex,
+    required this.primary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = [
+      const Color(0xFF20BC68), // Easy — green
+      const Color(0xFF6C63FF), // Medium — purple
+      const Color(0xFFFF6B6B), // Hard — red-orange
+    ];
+    final slotColor = colors[slotIndex.clamp(0, 2)];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: task.isCompleted
+              ? slotColor.withValues(alpha: 0.08)
+              : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: task.isCompleted
+                ? slotColor.withValues(alpha: 0.35)
+                : Colors.grey.shade200,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            // Icon
+            Text(task.icon, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 12),
+
+            // Title + description
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: task.isCompleted
+                          ? slotColor
+                          : const Color(0xFF1A1A1A),
+                      decoration: task.isCompleted
+                          ? TextDecoration.lineThrough
+                          : null,
+                      decorationColor: slotColor,
+                    ),
+                  ),
+                  Text(
+                    task.description,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+
+            // XP chip
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 3,
+              ),
+              decoration: BoxDecoration(
+                color: slotColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '+${task.xpReward} XP',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: slotColor,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Checkmark
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: task.isCompleted
+                  ? Icon(
+                      Icons.check_circle_rounded,
+                      key: const ValueKey('check'),
+                      color: slotColor,
+                      size: 22,
+                    )
+                  : Icon(
+                      Icons.radio_button_unchecked_rounded,
+                      key: const ValueKey('uncheck'),
+                      color: Colors.grey.shade300,
+                      size: 22,
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

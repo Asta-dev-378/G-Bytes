@@ -5,7 +5,7 @@ import '../providers/timer_provider.dart';
 import '../providers/interval_timer_provider.dart';
 import 'home/g_zone_screen.dart';
 import 'timer/timer_shell_screen.dart';
-import 'music/music_player_screen.dart';
+
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -15,11 +15,6 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
-  static const List<Widget> _screens = [
-    GZoneScreen(),
-    TimerShellScreen(),
-    MusicPlayerScreen(),
-  ];
 
   @override
   void initState() {
@@ -53,8 +48,34 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final nav = context.watch<NavProvider>();
+    const screens = [
+      GZoneScreen(),
+      TimerShellScreen(),
+    ];
     return Scaffold(
-      body: IndexedStack(index: nav.currentIndex, children: _screens),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 280),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.04),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOut,
+            )),
+            child: child,
+          ),
+        ),
+        // Key forces AnimatedSwitcher to see index change as a new child
+        child: KeyedSubtree(
+          key: ValueKey<int>(nav.currentIndex),
+          child: screens[nav.currentIndex],
+        ),
+      ),
       bottomNavigationBar: _GBytesNavBar(currentIndex: nav.currentIndex),
     );
   }
@@ -100,14 +121,7 @@ class _GBytesNavBar extends StatelessWidget {
                 current: currentIndex,
                 color: primary,
               ),
-              _NavItem(
-                icon: Icons.music_note_outlined,
-                activeIcon: Icons.music_note,
-                label: 'G-Tunes',
-                index: 2,
-                current: currentIndex,
-                color: primary,
-              ),
+
             ],
           ),
         ),
@@ -116,6 +130,49 @@ class _GBytesNavBar extends StatelessWidget {
   }
 }
 
+/// Shared page route helpers used across the app.
+class AppRoutes {
+  AppRoutes._();
+
+  /// Slide up + fade from bottom — use for detail screens.
+  static PageRoute<T> slideUp<T>(Widget page) {
+    return PageRouteBuilder<T>(
+      pageBuilder: (_, a1, a2) => page,
+      transitionDuration: const Duration(milliseconds: 350),
+      reverseTransitionDuration: const Duration(milliseconds: 280),
+      transitionsBuilder: (_, anim, sa, child) {
+        return FadeTransition(
+          opacity: anim,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.10),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  /// Slide in from right — use for nested navigation.
+  static PageRoute<T> slideRight<T>(Widget page) {
+    return PageRouteBuilder<T>(
+      pageBuilder: (_, a1, a2) => page,
+      transitionDuration: const Duration(milliseconds: 320),
+      reverseTransitionDuration: const Duration(milliseconds: 260),
+      transitionsBuilder: (_, anim, sa, child) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+          child: FadeTransition(opacity: anim, child: child),
+        );
+      },
+    );
+  }
+}
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final IconData activeIcon;

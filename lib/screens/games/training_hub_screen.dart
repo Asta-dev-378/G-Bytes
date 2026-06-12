@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
+import '../../features/streak/models/daily_task.dart';
 
 import 'memory_game_screen.dart';
 import 'logic_game_screen.dart';
@@ -118,6 +119,7 @@ class TrainingHubScreen extends StatelessWidget {
               badge: game.memoryHighScore > 0
                   ? '🏆 ${game.memoryHighScore}'
                   : null,
+              taskDone: game.isTaskCompleted(TaskType.memory),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const MemoryGameScreen()),
@@ -133,6 +135,7 @@ class TrainingHubScreen extends StatelessWidget {
               badge: game.logicHighScore > 0
                   ? '🏆 ${game.logicHighScore}'
                   : null,
+              taskDone: game.isTaskCompleted(TaskType.logic),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const LogicGameScreen()),
@@ -146,6 +149,7 @@ class TrainingHubScreen extends StatelessWidget {
               color: isDark ? const Color(0xFF20BC68) : const Color(0xFF20BC68),
               delay: 300,
               badge: game.mathHighScore > 0 ? '🏆 ${game.mathHighScore}' : null,
+              taskDone: game.isTaskCompleted(TaskType.mathSprint),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const MathSprintScreen()),
@@ -161,6 +165,7 @@ class TrainingHubScreen extends StatelessWidget {
               badge: game.schulteHighScore > 0
                   ? '⏱ ${game.schulteHighScore}s'
                   : null,
+              taskDone: game.isTaskCompleted(TaskType.schulte),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SchulteGameScreen()),
@@ -176,6 +181,7 @@ class TrainingHubScreen extends StatelessWidget {
               badge: game.stroopHighScore > 0
                   ? '🏆 ${game.stroopHighScore}'
                   : null,
+              taskDone: game.isTaskCompleted(TaskType.stroop),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const StroopGameScreen()),
@@ -197,6 +203,7 @@ class _GameCard extends StatelessWidget {
   final int delay;
   final VoidCallback onTap;
   final String? badge;
+  final bool taskDone;
 
   const _GameCard({
     required this.icon,
@@ -206,6 +213,7 @@ class _GameCard extends StatelessWidget {
     required this.delay,
     required this.onTap,
     this.badge,
+    this.taskDone = false,
   });
 
   @override
@@ -285,7 +293,42 @@ class _GameCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(Icons.play_circle_filled_rounded, color: color, size: 34),
+                // Show task-done chip OR play arrow
+                if (taskDone)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF20BC68).withAlpha(25),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF20BC68).withAlpha(80),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: Color(0xFF20BC68),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Done',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF20BC68),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Icon(Icons.play_circle_filled_rounded, color: color, size: 34),
               ],
             ),
           ),

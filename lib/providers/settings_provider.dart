@@ -3,11 +3,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum TimerAnimationType { jellyfish, bubbleBurst, starDust }
 
-enum AppThemeColor { orange, cyan, purple }
+enum AppThemeColor { orange, cyan, purple, emeraldGreen, brickRed }
 
 class SettingsProvider extends ChangeNotifier {
   bool _soundEffectsEnabled = true;
-  TimerAnimationType _timerAnimation = TimerAnimationType.jellyfish;
+  TimerAnimationType _timerAnimation = TimerAnimationType.starDust;
   bool _schulteHardMode = false;
   AppThemeColor _appThemeColor = AppThemeColor.orange;
 
@@ -25,6 +25,10 @@ class SettingsProvider extends ChangeNotifier {
         return const Color(0xFF00BCD4);
       case AppThemeColor.purple:
         return const Color(0xFF7C4DFF);
+      case AppThemeColor.emeraldGreen:
+        return const Color(0xFF1A7A50); // deep luxury emerald
+      case AppThemeColor.brickRed:
+        return const Color(0xFFA0303A); // luxury brick red
     }
   }
 
@@ -36,7 +40,8 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _soundEffectsEnabled = prefs.getBool('sound_effects') ?? true;
     _schulteHardMode = prefs.getBool('schulte_hard_mode') ?? false;
-    final animIdx = prefs.getInt('timer_animation') ?? 0;
+    // Default to starDust (index 2) for any install that hasn't saved a pref
+    final animIdx = prefs.getInt('timer_animation') ?? 2;
     _timerAnimation = TimerAnimationType
         .values[animIdx.clamp(0, TimerAnimationType.values.length - 1)];
     final colorIdx = prefs.getInt('app_theme_color') ?? 0;
@@ -92,6 +97,10 @@ class SettingsProvider extends ChangeNotifier {
         return 'Cyan';
       case AppThemeColor.purple:
         return 'Purple';
+      case AppThemeColor.emeraldGreen:
+        return 'Emerald';
+      case AppThemeColor.brickRed:
+        return 'Brick Red';
     }
   }
 }

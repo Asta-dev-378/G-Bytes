@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,12 +7,10 @@ import 'package:go_router/go_router.dart';
 
 import 'providers/user_provider.dart';
 import 'providers/game_provider.dart';
-import 'providers/music_provider.dart';
 import 'providers/timer_provider.dart';
 import 'providers/interval_timer_provider.dart';
 import 'providers/nav_provider.dart';
 import 'providers/settings_provider.dart';
-import 'services/music_audio_handler.dart';
 
 import 'screens/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -31,27 +28,6 @@ void main() async {
   // Disable Google Fonts network fetching — use bundled Poppins TTFs instead
   GoogleFonts.config.allowRuntimeFetching = false;
 
-  // Start the audio background service with notification controls
-  MusicAudioHandler handler;
-  try {
-    handler = await AudioService.init(
-      builder: () => MusicAudioHandler(),
-      config: const AudioServiceConfig(
-        androidNotificationChannelId: 'com.gbytes.g_bytes.audio',
-        androidNotificationChannelName: 'G-Tunes Player',
-        androidNotificationOngoing: false, // allows stopping from notification
-        androidShowNotificationBadge: false,
-        androidStopForegroundOnPause: true, // stops when swiped from recents
-        notificationColor: Color(0xFFFF8C00),
-      ),
-    );
-  } catch (e) {
-    debugPrint(
-      'AudioService.init failed — running without background audio: $e',
-    );
-    handler = MusicAudioHandler(); // fallback: music plays but no notification
-  }
-
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -64,8 +40,6 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()..init()),
         ChangeNotifierProvider(create: (_) => GameProvider()),
-        // MusicProvider receives the audio handler so it shares the same player
-        ChangeNotifierProvider(create: (_) => MusicProvider(handler)),
         ChangeNotifierProvider(create: (_) => TimerProvider()),
         ChangeNotifierProvider(create: (_) => IntervalTimerProvider()),
         ChangeNotifierProvider(create: (_) => NavProvider()),

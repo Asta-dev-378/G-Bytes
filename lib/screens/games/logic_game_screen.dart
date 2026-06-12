@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
+import '../../features/streak/models/daily_task.dart';
 
 class LogicGameScreen extends StatefulWidget {
   const LogicGameScreen({super.key});
@@ -14,6 +15,7 @@ class LogicGameScreen extends StatefulWidget {
 class _LogicGameScreenState extends State<LogicGameScreen> {
   int? _selectedAnswer;
   bool _answered = false;
+  bool _sessionCompleted = false; // guard: award task XP only once
 
   @override
   void initState() {
@@ -21,6 +23,12 @@ class _LogicGameScreenState extends State<LogicGameScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<GameProvider>().startLogicGame();
     });
+  }
+
+  @override
+  void dispose() {
+    context.read<GameProvider>().stopLogicGame();
+    super.dispose();
   }
 
   void _answer(int val) {
@@ -70,19 +78,6 @@ class _LogicGameScreenState extends State<LogicGameScreen> {
             highScore: game.logicHighScore,
             isNew: game.newLogicRecord,
             color: purple,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Text(
-                '+20 pts',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: purple,
-                ),
-              ),
-            ),
           ),
         ],
       ),
@@ -264,7 +259,7 @@ class _LogicGameScreenState extends State<LogicGameScreen> {
 
               Text(
                 _selectedAnswer == game.logicAnswer
-                    ? '✅ Correct! +20 pts'
+                    ? '✅ Correct!'
                     : '❌ Wrong! The answer was ${game.logicAnswer}',
                 style: GoogleFonts.poppins(
                   fontSize: 16,
@@ -281,7 +276,17 @@ class _LogicGameScreenState extends State<LogicGameScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () {
+                        // Award task XP once the user has answered at least 1 question
+                        if (!_sessionCompleted &&
+                            game.logicQuestionsAnswered >= 1) {
+                          _sessionCompleted = true;
+                          context
+                              .read<GameProvider>()
+                              .markGameComplete(TaskType.logic);
+                        }
+                        Navigator.of(context).pop();
+                      },
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(
                           color: Color(0xFF6C63FF),

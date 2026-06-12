@@ -41,11 +41,8 @@ dependencies:
   shared_preferences: ^2.5.4
   intl: ^0.20.2
   percent_indicator: ^4.2.5
-  file_picker: ^10.3.10
-  just_audio: ^0.10.5
   path_provider: ^2.1.5
-  audio_service: ^0.18.18
-  flutter_local_notifications: ^17.1.0
+  just_audio: ^0.10.5
 
 dev_dependencies:
   flutter_test:

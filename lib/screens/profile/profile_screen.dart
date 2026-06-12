@@ -72,7 +72,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '${game.league.displayName} • ${game.totalPoints} pts',
+                          '${game.league.displayName} \u2022 ${game.totalPoints} pts',
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontSize: 13,
@@ -101,74 +101,7 @@ class ProfileScreen extends StatelessWidget {
             ).animate(delay: 100.ms).fadeIn(),
             const SizedBox(height: 16),
 
-            // ── Timer Animation Dropdown ───────────────────────
-            _SectionCard(
-              title: 'Timer Animation',
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Animation style for interval timer',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _StyledDropdown<TimerAnimationType>(
-                      value: settings.timerAnimation,
-                      items: TimerAnimationType.values.map((type) {
-                        final d = _animationData(type);
-                        return DropdownMenuItem(
-                          value: type,
-                          child: Row(
-                            children: [
-                              Text(
-                                d.emoji,
-                                style: const TextStyle(fontSize: 20),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      d.label,
-                                      style: GoogleFonts.poppins(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    Text(
-                                      d.description,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 11,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (v) {
-                        if (v != null) settings.setTimerAnimation(v);
-                      },
-                      accentColor: primary,
-                    ),
-                  ],
-                ),
-              ),
-            ).animate(delay: 150.ms).fadeIn(),
-            const SizedBox(height: 16),
-
-            // ── Color Theme Dropdown ───────────────────────────
+            // ── Color Theme ───────────────────────────────────
             _SectionCard(
               title: 'Color Theme',
               child: Padding(
@@ -183,245 +116,358 @@ class ProfileScreen extends StatelessWidget {
                         color: Colors.grey.shade500,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    _StyledDropdown<AppThemeColor>(
-                      value: settings.appThemeColor,
-                      items: AppThemeColor.values.map((color) {
+                    const SizedBox(height: 12),
+                    // Color swatch grid
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: AppThemeColor.values.map((color) {
                         final d = _colorData(color);
-                        return DropdownMenuItem(
-                          value: color,
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 26,
-                                height: 26,
-                                decoration: BoxDecoration(
-                                  color: d.color,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: d.color.withAlpha(80),
-                                      blurRadius: 6,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
+                        final isSelected = settings.appThemeColor == color;
+                        return GestureDetector(
+                          onTap: () => settings.setAppThemeColor(color),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: d.color,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.transparent,
+                                width: 3,
                               ),
-                              const SizedBox(width: 12),
-                              Text(
-                                '${d.emoji}  ${d.label}',
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: d.color.withAlpha(
+                                    isSelected ? 120 : 60,
+                                  ),
+                                  blurRadius: isSelected ? 16 : 8,
+                                  spreadRadius: isSelected ? 2 : 0,
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: isSelected
+                                ? const Icon(
+                                    Icons.check_rounded,
+                                    color: Colors.white,
+                                    size: 22,
+                                  )
+                                : null,
                           ),
                         );
                       }).toList(),
-                      onChanged: (v) {
-                        if (v != null) settings.setAppThemeColor(v);
-                      },
-                      accentColor: settings.appSeedColor,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      settings.appThemeColorLabel,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: primary,
+                      ),
                     ),
                   ],
                 ),
               ),
+            ).animate(delay: 150.ms).fadeIn(),
+            const SizedBox(height: 16),
+
+            // ── General ────────────────────────────────────────
+            _SectionCard(
+              title: 'General',
+              child: Column(
+                children: [
+                  // Rename
+                  ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: primary.withAlpha(20),
+                        border: Border.all(
+                          color: primary.withAlpha(60),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.drive_file_rename_outline_rounded,
+                        color: primary,
+                        size: 20,
+                      ),
+                    ),
+                    title: Text(
+                      'Rename',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      'Change your display name',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
+                    onTap: () => _showRenameDialog(context, user),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  // About
+                  ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            settings.appSeedColor,
+                            settings.appSeedColor.withAlpha(180),
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: settings.appSeedColor.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          'G',
+                          style: GoogleFonts.russoOne(
+                            fontSize: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      'About G-Bytes',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      'Version 1.0.0 — Our story & what\'s coming',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AboutScreen()),
+                    ),
+                  ),
+                ],
+              ),
             ).animate(delay: 200.ms).fadeIn(),
             const SizedBox(height: 16),
 
-            // ── General / About ────────────────────────────────
+            // ── Reset App ─────────────────────────────────────
             _SectionCard(
-              title: 'General',
+              title: 'Danger Zone',
               child: ListTile(
                 leading: Container(
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        settings.appSeedColor,
-                        settings.appSeedColor.withAlpha(180),
-                      ],
+                    color: Colors.red.shade50,
+                    border: Border.all(
+                      color: Colors.red.shade200,
+                      width: 1.5,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: settings.appSeedColor.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                      ),
-                    ],
                   ),
-                  child: Center(
-                    child: Text(
-                      'G',
-                      style: GoogleFonts.russoOne(
-                        fontSize: 18,
-                        color: Colors.white,
-                      ),
-                    ),
+                  child: Icon(
+                    Icons.restart_alt_rounded,
+                    color: Colors.red.shade600,
+                    size: 22,
                   ),
                 ),
                 title: Text(
-                  'About G-Bytes',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  'Reset App',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.red.shade700,
+                  ),
                 ),
                 subtitle: Text(
-                  'Version 1.0.0 — Our story & what\'s coming',
-                  style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+                  'Clears all data and progress',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
                 ),
-                trailing: const Icon(
+                trailing: Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 14,
                   color: Colors.grey,
                 ),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AboutScreen()),
-                ),
+                onTap: () => _showResetDialog(context),
               ),
             ).animate(delay: 250.ms).fadeIn(),
-            const SizedBox(height: 16),
-
-            // ── Sign Out ───────────────────────────────────────
-            ElevatedButton.icon(
-              onPressed: () {
-                context.read<UserProvider>().logout();
-                context.go('/login');
-              },
-              icon: const Icon(Icons.logout_rounded),
-              label: const Text('SIGN OUT'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey.shade800,
-              ),
-            ).animate(delay: 300.ms).fadeIn(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 28),
           ],
         ),
       ),
     );
   }
 
-  _AnimData _animationData(TimerAnimationType type) {
-    switch (type) {
-      case TimerAnimationType.jellyfish:
-        return _AnimData(
-          emoji: '🪼',
-          label: 'Jellyfish Glow',
-          description: 'Flowing tentacles & radial glow rings',
-          color: const Color(0xFF00E5FF),
-        );
-      case TimerAnimationType.bubbleBurst:
-        return _AnimData(
-          emoji: '🫧',
-          label: 'Bubble Burst',
-          description: 'Expanding bubbles that burst on phase change',
-          color: const Color(0xFF7C4DFF),
-        );
-      case TimerAnimationType.starDust:
-        return _AnimData(
-          emoji: '✨',
-          label: 'Star Dust',
-          description: 'Twinkling star particles & shooting trails',
-          color: const Color(0xFFFFB300),
-        );
-    }
+  void _showRenameDialog(BuildContext context, UserProvider user) {
+    final controller = TextEditingController(text: user.userName ?? '');
+    final primary = Theme.of(context).colorScheme.primary;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Rename',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 20,
+          decoration: InputDecoration(
+            hintText: 'Enter new name',
+            hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400),
+            filled: true,
+            fillColor: primary.withAlpha(12),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: primary.withAlpha(60)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: primary, width: 2),
+            ),
+            counterText: '',
+          ),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                context.read<UserProvider>().rename(controller.text.trim());
+              }
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'Save',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showResetDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Reset App?',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w700,
+            color: Colors.red.shade700,
+          ),
+        ),
+        content: Text(
+          'This will permanently delete all your progress, points, streaks, and data. This action cannot be undone.',
+          style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade700),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              // Capture all context-dependent refs before the first await
+              final game = context.read<GameProvider>();
+              final user = context.read<UserProvider>();
+              final router = GoRouter.of(context);
+              await game.resetAllData();
+              await user.logout();
+              router.go('/login');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'Reset',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   _ColorData _colorData(AppThemeColor color) {
     switch (color) {
       case AppThemeColor.orange:
-        return _ColorData(
-          emoji: '🔶',
-          label: 'Orange',
-          color: const Color(
-            0xFFFF8C00,
-          ), // orange stays in the color-picker data item
-        );
+        return _ColorData(label: 'Orange', color: const Color(0xFFFF8C00));
       case AppThemeColor.cyan:
-        return _ColorData(
-          emoji: '🩵',
-          label: 'Cyan',
-          color: const Color(0xFF00BCD4),
-        );
+        return _ColorData(label: 'Cyan', color: const Color(0xFF00BCD4));
       case AppThemeColor.purple:
-        return _ColorData(
-          emoji: '💜',
-          label: 'Purple',
-          color: const Color(0xFF7C4DFF),
-        );
+        return _ColorData(label: 'Purple', color: const Color(0xFF7C4DFF));
+      case AppThemeColor.emeraldGreen:
+        return _ColorData(label: 'Emerald', color: const Color(0xFF1A7A50));
+      case AppThemeColor.brickRed:
+        return _ColorData(label: 'Brick Red', color: const Color(0xFFA0303A));
     }
   }
 }
 
 // ── Data helpers ──────────────────────────────────────────────────
-class _AnimData {
-  final String emoji;
-  final String label;
-  final String description;
-  final Color color;
-  _AnimData({
-    required this.emoji,
-    required this.label,
-    required this.description,
-    required this.color,
-  });
-}
-
 class _ColorData {
-  final String emoji;
   final String label;
   final Color color;
-  _ColorData({required this.emoji, required this.label, required this.color});
-}
-
-// ── Styled Dropdown ───────────────────────────────────────────────
-class _StyledDropdown<T> extends StatelessWidget {
-  final T value;
-  final List<DropdownMenuItem<T>> items;
-  final ValueChanged<T?> onChanged;
-  final Color accentColor;
-
-  const _StyledDropdown({
-    required this.value,
-    required this.items,
-    required this.onChanged,
-    required this.accentColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accentColor, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: accentColor.withAlpha(25),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down_rounded, color: accentColor),
-          items: items,
-          onChanged: onChanged,
-          selectedItemBuilder: (context) => items.map((item) {
-            return Align(alignment: Alignment.centerLeft, child: item.child);
-          }).toList(),
-          dropdownColor: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          itemHeight: 60,
-        ),
-      ),
-    );
-  }
+  _ColorData({required this.label, required this.color});
 }
 
 // ── Section Card ──────────────────────────────────────────────────
