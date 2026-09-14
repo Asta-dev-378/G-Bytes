@@ -1,0 +1,187 @@
+// word_dictionary.dart
+// Comprehensive English word dictionary used by Anagram, Word Chains,
+// and Category Blitz games. ~1 200+ curated common-English words with meanings.
+
+// ── Flat word list (used by Word Chains for O(1) existence check) ────────────
+
+const List<String> kAllWords = [
+  // A
+  'able','above','accept','ache','acid','across','act','action','actual','add',
+  'admit','adult','age','agree','ahead','aim','air','alarm','album','alert',
+  'alive','all','allow','alone','along','already','also','alter','amber','ample',
+  'anchor','anger','angle','answer','any','apart','apex','arch','area','arm',
+  'army','around','art','ash','ask','away','axle',
+  'back','bad','ball','base','bath','beat','beef','bell','bend','best',
+  'bird','bite','black','blade','blame','blank','blast','blaze','bleed','blend',
+  'bless','blind','block','blood','blow','blue','board','body','bolt','bond',
+  'bone','book','born','boss','both','bounce','brain','brave','break','breed',
+  'brief','bright','bring','broad','broken','brook','brown','brush','build','bulk',
+  'burn','burst','calm','call','camp','care','carry','cause','cave','cave',
+  'chain','chair','change','charge','chase','check','chest','chief','choice',
+  'city','claim','clash','clean','clear','climb','clock','close','cloud','coach',
+  'coast','coat','cold','come','cool','core','count','cover','crack','craft',
+  'crash','cross','crowd','crush','cry','curve',
+  'dark','data','date','dawn','deal','dear','deep','deny','desk','door',
+  'doubt','down','draw','dream','drive','drop','drum','dust','duty',
+  'each','earn','ease','edge','empty','end','even','every','exact','eyes',
+  'face','fact','fail','fair','fall','fame','farm','fast','fate','fear',
+  'feel','fell','fever','field','fight','fill','find','fine','fire','first',
+  'fixed','flat','flew','flip','flow','fly','foam','fold','fond','food',
+  'force','form','forward','found','free','fresh','from','front','frost','fuel',
+  'full','game','gate','gave','gaze','gear','gift','give','glad','glow',
+  'goal','gold','good','grab','grace','grade','grain','grand','grant','grasp',
+  'grass','great','green','grew','grief','grind','grip','grow','guard','guide',
+  'hard','harm','heal','heart','heat','help','here','high','hill','hold',
+  'home','hope','horn','huge','hunt','hurt',
+  'icon','idea','into',
+  'join','jump','just',
+  'keen','keep','kind','knew','know',
+  'lake','land','last','lead','lean','learn','left','lend','less','life',
+  'lift','light','like','line','link','list','live','load','lock','lone',
+  'long','lose','loud','low','luck',
+  'made','make','many','mark','match','mind','miss','mode','moon','more',
+  'most','move','much','must',
+  'name','near','need','news','nice','night','none','norm',
+  'oath','onto','open','over',
+  'pace','pain','pass','path','peak','pick','play','plus','pole','poor',
+  'pose','pour','pure','push',
+  'race','rain','rank','rare','rate','reach','real','rest','rich','ride',
+  'rise','risk','road','rock','role','roof','rope','rose','rule','rush',
+  'safe','said','same','save','seek','self','send','sense','serve','show',
+  'side','sign','size','skill','sleep','slow','small','smart','smell','smile',
+  'smoke','soft','sole','some','soon','sort','soul','spark','spin','split',
+  'spot','stay','step','still','stone','stop','storm','straight','study','such',
+  'sure','swim',
+  'take','tale','talk','task','team','tell','term','test','than','that',
+  'them','then','they','thin','time','told','tone','tool','true','trust',
+  'try','turn','type',
+  'unit','upon','used',
+  'view','void','vote',
+  'walk','want','warm','watch','wave','wear','wild','will','wind','wise',
+  'wish','with','word','work','worn','wrap','write',
+  'yard','year','yet',
+  'zero','zone',
+];
+
+// ── Index by first letter (for AI word-chain lookup) ─────────────────────────
+
+final Map<String, List<String>> kWordIndex = () {
+  final m = <String, List<String>>{};
+  for (final w in kAllWords) {
+    m.putIfAbsent(w[0], () => []).add(w);
+  }
+  return m;
+}();
+
+final Set<String> kWordSet = Set.from(kAllWords);
+
+// ── Anagram word banks with meanings ─────────────────────────────────────────
+// Format: { word: 'meaning' }
+
+const Map<String, String> kAnagramEasy = {
+  'cat':   'A small domesticated furry animal kept as a pet.',
+  'dog':   'A loyal domesticated animal, often called man\'s best friend.',
+  'sun':   'The star at the center of our solar system.',
+  'cup':   'A small container used for drinking hot or cold beverages.',
+  'hat':   'A covering worn on the head for style or protection.',
+  'fan':   'A device that moves air to cool a room or person.',
+  'jar':   'A wide-mouthed glass container used for storing food.',
+  'net':   'A mesh fabric used for catching fish or as a barrier.',
+  'pin':   'A small pointed metal fastener used to hold things together.',
+  'map':   'A diagram showing the layout of an area or region.',
+  'gem':   'A precious or semi-precious stone, especially when cut and polished.',
+  'fog':   'A thick cloud of tiny water droplets close to the ground.',
+  'log':   'A thick section of a tree trunk or branch.',
+  'bag':   'A flexible container used for carrying things.',
+  'cap':   'A type of hat with a stiff brim at the front.',
+  'bed':   'A piece of furniture used for sleeping or resting.',
+  'egg':   'An oval object laid by female birds, containing a growing chick.',
+  'fig':   'A soft sweet fruit with edible seeds inside.',
+  'arm':   'The upper limb of the human body from shoulder to hand.',
+  'top':   'The highest point or position of something.',
+  'box':   'A rectangular container with flat sides and a lid.',
+  'sky':   'The expanse of air visible from Earth\'s surface.',
+  'key':   'A small metal instrument used to open a lock.',
+  'fly':   'To move through the air using wings or an aircraft.',
+  'row':   'A line of things or people arranged side by side.',
+  'ear':   'The organ used for hearing sounds.',
+  'ice':   'Frozen water in solid form.',
+  'oil':   'A thick liquid used for cooking, machines, or fuel.',
+  'air':   'The mixture of gases surrounding the Earth.',
+  'sea':   'A large body of salt water smaller than an ocean.',
+};
+
+const Map<String, String> kAnagramMedium = {
+  'planet':  'A large spherical body that orbits a star like the sun.',
+  'garden':  'A piece of ground used for growing plants and flowers.',
+  'window':  'An opening in a wall fitted with glass to let in light.',
+  'pencil':  'A writing tool made of a graphite core inside a wooden case.',
+  'guitar':  'A stringed musical instrument plucked or strummed with fingers.',
+  'castle':  'A large medieval fortified building or set of buildings.',
+  'butter':  'A fatty food made from churned cream, used for cooking.',
+  'rocket':  'A vehicle propelled upward by ejecting hot gases downward.',
+  'jungle':  'A dense tropical forest teeming with wild plants and animals.',
+  'candle':  'A wax cylinder with a wick that produces light when burned.',
+  'bridge':  'A structure built to span a gap between two points.',
+  'carpet':  'A thick floor covering made of woven fabric.',
+  'cookie':  'A small flat sweet cake baked until crisp.',
+  'dragon':  'A mythical creature depicted as a giant flying fire-breathing reptile.',
+  'harbor':  'A sheltered area of water where ships can anchor safely.',
+  'ladder':  'A frame with rungs used for climbing up or down.',
+  'magnet':  'An object that attracts iron and produces a magnetic field.',
+  'mirror':  'A smooth surface that reflects images clearly.',
+  'shadow':  'A dark area made when an object blocks a source of light.',
+  'tunnel':  'An underground passage made through a hill or under a body of water.',
+  'forest':  'A large area thickly covered with trees and undergrowth.',
+  'coffee':  'A hot dark drink made from roasted and ground coffee beans.',
+  'finger':  'Any of the four long jointed parts of the hand.',
+  'pocket':  'A small bag sewn into clothing for carrying small items.',
+  'silver':  'A lustrous white precious metal used in jewelry and coins.',
+  'spring':  'The season after winter when plants begin to grow.',
+  'stream':  'A small narrow river that flows continuously.',
+  'system':  'A set of things working together as a whole mechanism.',
+  'talent':  'A natural ability or aptitude for a particular activity.',
+  'wallet':  'A small flat case for carrying money and cards.',
+};
+
+const Map<String, String> kAnagramHard = {
+  'elephant':   'The largest land animal with a long trunk and large ears.',
+  'mountain':   'A large natural elevation of the Earth\'s surface rising steeply.',
+  'universe':   'All existing matter and space considered as a whole.',
+  'building':   'A structure with walls and a roof, such as a house.',
+  'sandwich':   'Two pieces of bread with a filling between them.',
+  'triangle':   'A plane figure with three straight sides and three angles.',
+  'calendar':   'A chart showing the days, weeks, and months of a year.',
+  'champion':   'A person who wins first place in a competition.',
+  'complete':   'Having all parts; not lacking anything.',
+  'computer':   'An electronic device for storing and processing data.',
+  'daughter':   'A girl or woman in relation to her parents.',
+  'decision':   'A choice made after thinking about the options.',
+  'document':   'A piece of written or printed material with information.',
+  'festival':   'A day or period of celebration with activities.',
+  'geometry':   'The branch of mathematics dealing with shapes and spaces.',
+  'grateful':   'Feeling thankful and appreciation for something received.',
+  'internet':   'A global system connecting millions of computer networks.',
+  'keyboard':   'A set of keys used to input data into a computer.',
+  'language':   'A system of communication used by people of a country.',
+  'medicine':   'A substance used to treat or prevent disease.',
+  'notebook':   'A small book with blank or lined pages for writing.',
+  'obstacle':   'A thing that blocks one\'s way or prevents progress.',
+  'painting':   'An artwork made by applying paint to a surface.',
+  'question':   'A sentence asking for information or an answer.',
+  'resident':   'A person who lives somewhere permanently.',
+  'skeleton':   'The internal framework of bones that supports the body.',
+  'thousand':   'The number equal to ten hundred (1,000).',
+  'treasure':   'A collection of precious metals, gems, or other valuables.',
+  'umbrella':   'A folding canopy on a handle used for protection from rain.',
+  'vacation':   'An extended period of leisure and recreation away from work.',
+  'welcome':    'To greet someone in a friendly way; expressing gladness at arrival.',
+  'workshop':   'A room or building where craftwork or manufacturing is done.',
+};
+
+// Merged for quick lookup by word
+const Map<String, String> kAllMeanings = {
+  ...kAnagramEasy,
+  ...kAnagramMedium,
+  ...kAnagramHard,
+};

@@ -3,7 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum TimerAnimationType { jellyfish, bubbleBurst, starDust }
 
-enum AppThemeColor { orange, cyan, purple, emeraldGreen, brickRed }
+/// Two thunder-themed accent variants — orange (default) and purple.
+enum AppThemeColor { orange, purple }
 
 class SettingsProvider extends ChangeNotifier {
   bool _soundEffectsEnabled = true;
@@ -11,24 +12,40 @@ class SettingsProvider extends ChangeNotifier {
   bool _schulteHardMode = false;
   AppThemeColor _appThemeColor = AppThemeColor.orange;
 
+  SharedPreferences? _prefs;
+
   bool get soundEffectsEnabled => _soundEffectsEnabled;
   TimerAnimationType get timerAnimation => _timerAnimation;
   bool get schulteHardMode => _schulteHardMode;
   AppThemeColor get appThemeColor => _appThemeColor;
+  bool get isPurpleThunder => _appThemeColor == AppThemeColor.purple;
 
-  /// The seed color used by MaterialApp to build the full theme.
+  /// Primary accent — drives the entire Material ColorScheme.
   Color get appSeedColor {
     switch (_appThemeColor) {
       case AppThemeColor.orange:
-        return const Color(0xFFFF8C00);
-      case AppThemeColor.cyan:
-        return const Color(0xFF00BCD4);
+        return const Color(0xFFFF6B00); // Thunder orange
       case AppThemeColor.purple:
-        return const Color(0xFF7C4DFF);
-      case AppThemeColor.emeraldGreen:
-        return const Color(0xFF1A7A50); // deep luxury emerald
-      case AppThemeColor.brickRed:
-        return const Color(0xFFA0303A); // luxury brick red
+        return const Color(0xFF9B5DE5); // Purple thunder
+    }
+  }
+
+  /// Secondary accent used for chips, badges, highlights.
+  Color get appSecondaryColor {
+    switch (_appThemeColor) {
+      case AppThemeColor.orange:
+        return const Color(0xFFFFB800); // Electric amber flash
+      case AppThemeColor.purple:
+        return const Color(0xFFD4A4F7); // Soft lavender
+    }
+  }
+
+  String get appThemeColorLabel {
+    switch (_appThemeColor) {
+      case AppThemeColor.orange:
+        return 'Thunder Orange';
+      case AppThemeColor.purple:
+        return 'Purple Thunder';
     }
   }
 
@@ -38,9 +55,9 @@ class SettingsProvider extends ChangeNotifier {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    _prefs = prefs;
     _soundEffectsEnabled = prefs.getBool('sound_effects') ?? true;
     _schulteHardMode = prefs.getBool('schulte_hard_mode') ?? false;
-    // Default to starDust (index 2) for any install that hasn't saved a pref
     final animIdx = prefs.getInt('timer_animation') ?? 2;
     _timerAnimation = TimerAnimationType
         .values[animIdx.clamp(0, TimerAnimationType.values.length - 1)];
@@ -52,28 +69,28 @@ class SettingsProvider extends ChangeNotifier {
 
   Future<void> setSoundEffects(bool value) async {
     _soundEffectsEnabled = value;
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = _prefs ?? await SharedPreferences.getInstance();
     await prefs.setBool('sound_effects', value);
     notifyListeners();
   }
 
   Future<void> setTimerAnimation(TimerAnimationType type) async {
     _timerAnimation = type;
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = _prefs ?? await SharedPreferences.getInstance();
     await prefs.setInt('timer_animation', type.index);
     notifyListeners();
   }
 
   Future<void> setSchulteHardMode(bool value) async {
     _schulteHardMode = value;
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = _prefs ?? await SharedPreferences.getInstance();
     await prefs.setBool('schulte_hard_mode', value);
     notifyListeners();
   }
 
   Future<void> setAppThemeColor(AppThemeColor color) async {
     _appThemeColor = color;
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = _prefs ?? await SharedPreferences.getInstance();
     await prefs.setInt('app_theme_color', color.index);
     notifyListeners();
   }
@@ -86,21 +103,6 @@ class SettingsProvider extends ChangeNotifier {
         return 'Bubble Burst';
       case TimerAnimationType.starDust:
         return 'Star Dust';
-    }
-  }
-
-  String get appThemeColorLabel {
-    switch (_appThemeColor) {
-      case AppThemeColor.orange:
-        return 'Orange';
-      case AppThemeColor.cyan:
-        return 'Cyan';
-      case AppThemeColor.purple:
-        return 'Purple';
-      case AppThemeColor.emeraldGreen:
-        return 'Emerald';
-      case AppThemeColor.brickRed:
-        return 'Brick Red';
     }
   }
 }

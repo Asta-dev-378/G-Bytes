@@ -3,6 +3,14 @@
 *.log
 *.pyc
 *.swp
+# Build output text files (should never be committed)
+build_log.txt
+build_out.txt
+build_output.log
+analyze_output.txt
+analyzer_output.txt
+
+*.swp
 .DS_Store
 .atom/
 .build/

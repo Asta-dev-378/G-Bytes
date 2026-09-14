@@ -134,9 +134,9 @@ class _AboutScreenState extends State<AboutScreen>
                 const SizedBox(height: 36),
 
                 // Description Card
-                _GlassCard(
+                const _GlassCard(
                   icon: Icons.bolt_rounded,
-                  iconColor: const Color(0xFFFF8C00),
+                  iconColor: Color(0xFFFF8C00),
                   title: 'What is G-Bytes?',
                   body:
                       'G-Bytes is your ultimate cognitive growth companion, designed to sharpen your mind through scientifically-backed brain games, focused interval training, and a curated knowledge system.\n\nEach session is crafted to challenge your memory, logic, reaction time, and emotional resilience — all in a distraction-free, beautifully designed experience.',
@@ -145,9 +145,9 @@ class _AboutScreenState extends State<AboutScreen>
                 const SizedBox(height: 16),
 
                 // Core Features
-                _GlassCard(
+                const _GlassCard(
                   icon: Icons.star_rounded,
-                  iconColor: const Color(0xFF00E5FF),
+                  iconColor: Color(0xFF00E5FF),
                   title: 'Core Features',
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,9 +184,9 @@ class _AboutScreenState extends State<AboutScreen>
                 const SizedBox(height: 16),
 
                 // Future Improvements
-                _GlassCard(
+                const _GlassCard(
                   icon: Icons.rocket_launch_rounded,
-                  iconColor: const Color(0xFFFF4081),
+                  iconColor: Color(0xFFFF4081),
                   title: 'Coming Soon ✨',
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,9 +228,9 @@ class _AboutScreenState extends State<AboutScreen>
                 const SizedBox(height: 16),
 
                 // Credits
-                _GlassCard(
+                const _GlassCard(
                   icon: Icons.favorite_rounded,
-                  iconColor: const Color(0xFFFF4081),
+                  iconColor: Color(0xFFFF4081),
                   title: 'Made With ❤️',
                   body:
                       'G-Bytes is built with Flutter and powered by a passion for human potential. Every feature is designed to make your mind stronger, one byte at a time.',

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../providers/game_provider.dart';
+import '../../providers/player_progress_provider.dart';
 import '../../providers/settings_provider.dart';
 
 class XpHistoryScreen extends StatelessWidget {
@@ -28,14 +28,14 @@ class XpHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final game = context.watch<GameProvider>();
+    final progress = context.watch<PlayerProgressProvider>();
     final primary = context.watch<SettingsProvider>().appSeedColor;
 
-    final history = game.xpHistory;
-    final currentPoints = game.weeklyPoints;
-    final lastWeekPoints = game.lastWeekPoints;
+    final history = progress.xpHistory; // List<XpEntry>
+    final currentPoints = progress.weeklyPoints;
+    final lastWeekPoints = progress.lastWeekPoints;
 
-    // Efficiency: how much of the weekly max (60 XP/day × 7 = 420) was earned
+    // Efficiency: how much of the weekly max (60 XP/day x 7 = 420) was earned
     final efficiency = (currentPoints / 420 * 100).clamp(0.0, 100.0).round();
     final delta = currentPoints - lastWeekPoints;
     final hasLastWeek = lastWeekPoints > 0;
@@ -44,14 +44,10 @@ class XpHistoryScreen extends StatelessWidget {
     int bestXp = currentPoints;
     int activeWeeks = 1;
 
-    for (final item in history) {
-      final parts = item.split('|');
-      if (parts.length == 2) {
-        final pts = int.tryParse(parts[1]) ?? 0;
-        totalXp += pts;
-        if (pts > bestXp) bestXp = pts;
-        activeWeeks++;
-      }
+    for (final entry in history) {
+      totalXp += entry.points;
+      if (entry.points > bestXp) bestXp = entry.points;
+      activeWeeks++;
     }
 
     final averageXp = (totalXp / activeWeeks).round();
@@ -163,11 +159,9 @@ class XpHistoryScreen extends StatelessWidget {
 
                 // Past Weeks
                 ...List.generate(history.length, (index) {
-                  final parts = history[index].split('|');
-                  if (parts.length != 2) return const SizedBox.shrink();
-                  
-                  final dateLabel = _formatWeekStr(parts[0]);
-                  final pts = int.tryParse(parts[1]) ?? 0;
+                  final entry = history[index];
+                  final dateLabel = _formatWeekStr(entry.weekStartDate);
+                  final pts = entry.points;
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),

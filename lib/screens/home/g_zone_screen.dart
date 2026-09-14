@@ -1,16 +1,82 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/player_progress_provider.dart';
 import '../../providers/settings_provider.dart';
-import '../games/training_hub_screen.dart';
+import '../../features/streak/models/daily_task.dart';
+import '../games/binary_puzzle_screen.dart';
+import '../games/sum_snake_screen.dart';
+import '../games/countdown_math_screen.dart';
+import '../games/akari_screen.dart';
+import '../games/balance_scale_screen.dart';
+import '../games/attentional_blink_screen.dart';
+import '../games/word_wheel_screen.dart';
+import '../games/action_sequence_recall_screen.dart';
 import '../knowledge/did_you_know_screen.dart';
 import '../../models/league.dart';
 import '../profile/profile_screen.dart';
-import '../../features/streak/models/daily_task.dart';
 import 'xp_history_screen.dart';
+
+
+// ── Game icon & color helpers for Today's Plan cards ─────────────────────
+
+IconData _taskIcon(TaskType type) {
+  return switch (type) {
+    TaskType.mathSprint       => Icons.calculate_rounded,
+    TaskType.memory           => Icons.grid_on_rounded,
+    TaskType.logic            => Icons.functions_rounded,
+    TaskType.schulte          => Icons.apps_rounded,
+    TaskType.stroop           => Icons.palette_rounded,
+    TaskType.reactionTimeTap  => Icons.touch_app_rounded,
+    TaskType.numberRush       => Icons.filter_9_plus_rounded,
+    TaskType.whackATarget     => Icons.gps_fixed_rounded,
+    TaskType.speedSort        => Icons.swap_horiz_rounded,
+    TaskType.cardMatch        => Icons.style_rounded,
+    TaskType.sequenceRecall   => Icons.linear_scale_rounded,
+    TaskType.nBack            => Icons.history_rounded,
+    TaskType.memoryPalace     => Icons.home_work_rounded,
+    TaskType.stroopTest       => Icons.colorize_rounded,
+    TaskType.sart             => Icons.track_changes_rounded,
+    TaskType.spotTheDifference=> Icons.compare_rounded,
+    TaskType.twentyFourGame   => Icons.tag_rounded,
+    TaskType.slidingPuzzle    => Icons.dashboard_rounded,
+    TaskType.patternCompletion=> Icons.pattern_rounded,
+    TaskType.miniSudoku       => Icons.grid_4x4_rounded,
+    TaskType.wordChains       => Icons.link_rounded,
+    TaskType.anagramSolver    => Icons.text_rotate_vertical_rounded,
+    TaskType.categoryBlitz    => Icons.category_rounded,
+    TaskType.mentalRotation   => Icons.rotate_90_degrees_ccw_rounded,
+    TaskType.mazeNavigator    => Icons.alt_route_rounded,
+  };
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+String _monthName(int m) {
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  return months[m - 1];
+}
+
+String _todayLabel() {
+  final now = DateTime.now();
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  return 'Today, ${now.day} ${months[now.month - 1]}';
+}
+
+bool _isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+// ── G-Zone Screen ──────────────────────────────────────────────────────────
 
 class GZoneScreen extends StatelessWidget {
   const GZoneScreen({super.key});
@@ -19,62 +85,114 @@ class GZoneScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = context.watch<UserProvider>();
     final game = context.watch<GameProvider>();
+    final progress = context.watch<PlayerProgressProvider>();
     final primary = context.watch<SettingsProvider>().appSeedColor;
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0F),
       body: CustomScrollView(
         slivers: [
+          // ── Glassmorphism App Bar ──────────────────────────────────
           SliverAppBar(
             pinned: true,
-            expandedHeight: 120,
-            backgroundColor: const Color(0xFFF5F5F5),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
-              title: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Hello, ${user.userName ?? 'Champion'} 👋',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
+            expandedHeight: 108,
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+            flexibleSpace: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0A0A0F).withValues(alpha: 0.88),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        width: 1,
                       ),
                     ),
-                    Text(
-                      'G-Zone',
-                      style: GoogleFonts.poppins(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF1A1A1A),
+                  ),
+                  child: FlexibleSpaceBar(
+                    titlePadding:
+                        const EdgeInsets.only(left: 24, bottom: 14),
+                    title: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _todayLabel(),
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: Colors.white38,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            'Hello, ${user.userName ?? 'Champion'} 👋',
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
             actions: [
+              // Notification bell
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.07),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.12)),
+                  ),
+                  child: const Icon(Icons.notifications_outlined,
+                      size: 18, color: Colors.white60),
+                ),
+              ),
+              // Profile avatar
               Padding(
                 padding: const EdgeInsets.only(right: 16),
                 child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                    );
-                  },
-                  child: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    radius: 20,
-                    child: Text(
-                      (user.userName?[0] ?? 'G').toUpperCase(),
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const ProfileScreen()),
+                  ),
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: primary,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: primary.withValues(alpha: 0.38),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        (user.userName?[0] ?? 'G').toUpperCase(),
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   ),
@@ -82,65 +200,60 @@ class GZoneScreen extends StatelessWidget {
               ),
             ],
           ),
+
+          // ── Content ───────────────────────────────────────────────
           SliverPadding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // Calendar + Streaks Section
-                _CalendarStreakCard(
+
+                // 1. Hero Challenge Banner
+                _HeroBannerCard(
+                  completedCount: progress.completedTaskCount,
+                  totalTasks: progress.dailyTasks.isEmpty
+                      ? 3
+                      : progress.dailyTasks.length,
+                  streak: game.streak,
+                  primary: primary,
+                ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.18, end: 0),
+                const SizedBox(height: 14),
+
+                // 2. Week Strip (replaces full calendar)
+                _WeekStripCard(
                   streak: game.streak,
                   bestStreak: game.bestStreak,
                   weeklyPoints: game.weeklyPoints,
-                  streakStartDate: game.streakStartDate,
-                  lastStreakDate: game.lastStreakDate,
-                  weekStartDate: game.weekStartDate,
+                  streakStartDate: progress.streakStartDate,
+                  lastStreakDate: progress.lastStreakDate,
+                  weekStartDate: progress.weekStartDate,
+                  league: progress.league,
                   primary: primary,
-                ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
-                const SizedBox(height: 16),
-
-                // League Badge
-                _LeagueBadgeCard(
-                  league: game.league,
-                  totalPoints: game.totalPoints,
-                  progress: game.leagueProgress,
-                  pointsToNext: game.pointsToNextLeague,
-                  isMax: game.isMaxLeague,
-                ).animate(delay: 100.ms).fadeIn().slideY(begin: 0.15, end: 0),
-                const SizedBox(height: 16),
-
-                // Daily Tasks Card
-                _DailyTasksCard(
-                  tasks: game.dailyTasks,
-                  completedCount: game.completedTaskCount,
-                  primary: primary,
-                ).animate(delay: 130.ms).fadeIn().slideY(begin: 0.15, end: 0),
+                ).animate(delay: 60.ms).fadeIn().slideY(begin: 0.14, end: 0),
                 const SizedBox(height: 22),
 
-                // Section Label
-                _sectionLabel('Brain Training'),
-                const SizedBox(height: 12),
-
-                // Brain Game Card
-                _BrainGameCard(
+                // 3. Today's Plan — horizontal game cards
+                const _SectionHeader(title: "Today's Plan"),
+                const SizedBox(height: 10),
+                _TodaysPlanScroll(
+                  tasks: progress.dailyTasks,
                   primary: primary,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const TrainingHubScreen(),
-                    ),
-                  ),
-                ).animate(delay: 150.ms).fadeIn().slideY(begin: 0.15, end: 0),
-                const SizedBox(height: 24),
+                ).animate(delay: 130.ms).fadeIn().slideY(begin: 0.14, end: 0),
+                const SizedBox(height: 22),
 
-                _sectionLabel('Did You Know?'),
-                const SizedBox(height: 12),
+
+                // 6. Did You Know?
+                const _SectionHeader(title: 'Did You Know?'),
+                const SizedBox(height: 10),
                 _DidYouKnowCard(
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const DidYouKnowScreen()),
+                    MaterialPageRoute(
+                        builder: (_) => const DidYouKnowScreen()),
                   ),
-                ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.15, end: 0),
-                const SizedBox(height: 20),
+                ).animate(delay: 190.ms).fadeIn().slideY(begin: 0.14, end: 0),
+
+                // Clearance for floating pill nav
+                const SizedBox(height: 120),
               ]),
             ),
           ),
@@ -148,59 +261,211 @@ class GZoneScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _sectionLabel(String text) {
+// ── Section Header ─────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
     return Text(
-      text,
+      title,
       style: GoogleFonts.poppins(
-        fontSize: 17,
-        fontWeight: FontWeight.w700,
-        color: const Color(0xFF1A1A1A),
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
+        color: Colors.white,
       ),
     );
   }
 }
 
-// ── Calendar + Streak Card ──────────────────────────────────────────────────
+// ── Hero Banner Card ───────────────────────────────────────────────────────
 
-class _CalendarStreakCard extends StatelessWidget {
+class _HeroBannerCard extends StatelessWidget {
+  final int completedCount;
+  final int totalTasks;
+  final int streak;
+  final Color primary;
+
+  const _HeroBannerCard({
+    required this.completedCount,
+    required this.totalTasks,
+    required this.streak,
+    required this.primary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDone = completedCount >= totalTasks && totalTasks > 0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color.lerp(primary, const Color(0xFF0A0A0F), 0.60)!,
+            primary.withValues(alpha: 0.85),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: primary.withValues(alpha: 0.30)),
+        boxShadow: [
+          BoxShadow(
+            color: primary.withValues(alpha: 0.35),
+            blurRadius: 28,
+            spreadRadius: 2,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Left: text content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Pill label
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Daily Challenge',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  isDone
+                      ? 'All tasks done! 🎉'
+                      : 'Complete all tasks\nbefore midnight',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    height: 1.22,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Progress segments
+                Row(
+                  children: List.generate(totalTasks > 0 ? totalTasks : 3, (i) {
+                    return Expanded(
+                      child: Container(
+                        height: 6,
+                        margin: EdgeInsets.only(right: i < totalTasks - 1 ? 6 : 0),
+                        decoration: BoxDecoration(
+                          color: i < completedCount
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.28),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Right: streak counter
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('🔥', style: TextStyle(fontSize: 38)),
+              const SizedBox(height: 2),
+              Text(
+                '$streak',
+                style: GoogleFonts.poppins(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  height: 1,
+                ),
+              ),
+              Text(
+                'day streak',
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  color: Colors.white.withValues(alpha: 0.65),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Week Strip Card ────────────────────────────────────────────────────────
+
+class _WeekStripCard extends StatelessWidget {
   final int streak;
   final int bestStreak;
   final int weeklyPoints;
   final DateTime? streakStartDate;
   final String lastStreakDate;
   final String weekStartDate;
+  final LeagueInfo league;
   final Color primary;
-  const _CalendarStreakCard({
+
+  const _WeekStripCard({
     required this.streak,
     required this.bestStreak,
     required this.weeklyPoints,
     required this.streakStartDate,
     required this.lastStreakDate,
     required this.weekStartDate,
+    required this.league,
     required this.primary,
   });
 
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
-    final today = now.day;
+    // Week starts on Monday (weekday == 1)
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
 
-    // Generate week day headers
-    const weekDays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+    DateTime? lastStreakDay;
+    if (lastStreakDate.isNotEmpty) {
+      try {
+        final parts = lastStreakDate.split('-');
+        lastStreakDay = DateTime(
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+          int.parse(parts[2]),
+        );
+      } catch (_) {}
+    }
 
-    // First weekday of this month (0=Mon through 6=Sun)
-    final firstDay = DateTime(now.year, now.month, 1).weekday - 1;
+    const dayAbbrevs = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF12121A),
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: 0.30),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -209,7 +474,7 @@ class _CalendarStreakCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row: month name + streak
+          // Header row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -219,54 +484,48 @@ class _CalendarStreakCard extends StatelessWidget {
                   Text(
                     _monthName(now.month),
                     style: GoogleFonts.poppins(
-                      fontSize: 18,
+                      fontSize: 17,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1A1A1A),
+                      color: Colors.white,
                     ),
                   ),
                   Text(
                     '${now.year}',
                     style: GoogleFonts.poppins(
                       fontSize: 12,
-                      color: Colors.grey.shade500,
+                      color: Colors.white38,
                     ),
                   ),
                 ],
               ),
-              // Streak chip
+              // Streak pill
               Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
+                        horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [primary, primary.withValues(alpha: 0.7)],
-                      ),
-                      borderRadius: BorderRadius.circular(16),
+                      color: const Color(0xFFC6E05B).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                          color: const Color(0xFFC6E05B).withValues(alpha: 0.35)),
                       boxShadow: [
                         BoxShadow(
-                          color: primary.withValues(alpha: 0.35),
+                          color: const Color(0xFFC6E05B).withValues(alpha: 0.20),
                           blurRadius: 12,
-                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.local_fire_department_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 6),
+                        const Icon(Icons.local_fire_department_rounded,
+                            color: Color(0xFFF07845), size: 15),
+                        const SizedBox(width: 5),
                         Text(
-                          '$streak Day Streak!',
+                          '$streak day${streak == 1 ? '' : 's'}',
                           style: GoogleFonts.poppins(
-                            color: Colors.white,
+                            color: const Color(0xFFC6E05B),
                             fontWeight: FontWeight.w700,
-                            fontSize: 13,
+                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -281,76 +540,148 @@ class _CalendarStreakCard extends StatelessWidget {
                   ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
 
-          // Week day headers
+          // 7-day week strip
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: weekDays
-                .map(
-                  (d) => SizedBox(
-                    width: 32,
+            children: List.generate(7, (i) {
+              final day = weekStart.add(Duration(days: i));
+              final isToday = _isSameDay(day, now);
+              final isFuture = day.isAfter(now) && !isToday;
+
+              bool isStreakDay = false;
+              if (streakStartDate != null && lastStreakDay != null) {
+                isStreakDay = !day.isBefore(streakStartDate!) &&
+                    !day.isAfter(lastStreakDay) &&
+                    !isToday;
+              }
+
+              return Column(
+                children: [
+                  // Day abbreviation
+                  Text(
+                    dayAbbrevs[i],
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isToday
+                          ? Colors.white
+                          : Colors.white38,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  // Day number circle
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: isToday
+                          ? Colors.white
+                          : isStreakDay
+                              ? primary.withValues(alpha: 0.09)
+                              : Colors.transparent,
+                      shape: BoxShape.circle,
+                    ),
                     child: Center(
                       child: Text(
-                        d,
+                        '${day.day}',
                         style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.grey.shade400,
+                          fontSize: 13,
+                          fontWeight: isToday || isStreakDay
+                              ? FontWeight.w700
+                              : FontWeight.w400,
+                          color: isToday
+                              ? const Color(0xFF1C1C1E)
+                              : isStreakDay
+                                  ? primary
+                                  : isFuture
+                                      ? Colors.white24
+                                      : Colors.white,
                         ),
                       ),
                     ),
                   ),
-                )
-                .toList(),
+                  const SizedBox(height: 5),
+                  // Activity dot
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isStreakDay
+                          ? primary
+                          : isToday
+                              ? const Color(0xFFC6E05B)
+                              : Colors.transparent,
+                    ),
+                  ),
+                ],
+              );
+            }),
           ),
-          const SizedBox(height: 8),
-
-          // Calendar grid
-          _CalendarGrid(
-            daysInMonth: daysInMonth,
-            firstWeekday: firstDay,
-            today: today,
-            now: now,
-            streakStartDate: streakStartDate,
-            lastStreakDate: lastStreakDate,
-            primary: primary,
-          ),
-
-          const SizedBox(height: 16),
-          const Divider(height: 1),
           const SizedBox(height: 14),
+          Container(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+          const SizedBox(height: 12),
 
-          // Bottom stats row
+          // Bottom stat bubbles
           Row(
             children: [
               _StatBubble(
                 icon: Icons.star_rounded,
                 value: '$weeklyPoints pts',
                 label: _weekLabel(weekStartDate),
-                color: const Color(0xFF6C63FF),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const XpHistoryScreen(),
-                    ),
-                  );
-                },
+                color: primary,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const XpHistoryScreen()),
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               _StatBubble(
                 icon: Icons.emoji_events_rounded,
                 value: '$bestStreak days',
                 label: 'Best Streak',
                 color: primary,
               ),
-              const SizedBox(width: 12),
-              _StatBubble(
-                icon: Icons.calendar_today_rounded,
-                value: '${now.day}',
-                label: _monthName(now.month).substring(0, 3),
-                color: const Color(0xFF20BC68),
+              const SizedBox(width: 10),
+              // League indicator replacing the old date/month bubble
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: league.color.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: league.color.withValues(alpha: 0.22), width: 1),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(league.icon, color: league.color, size: 18),
+                      const SizedBox(height: 4),
+                      Text(
+                        league.displayName,
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: league.color,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'League',
+                        style: GoogleFonts.poppins(
+                            fontSize: 9, color: Colors.white38),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -359,142 +690,26 @@ class _CalendarStreakCard extends StatelessWidget {
     );
   }
 
-  String _monthName(int m) {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
-    return months[m - 1];
-  }
-
-  /// Returns a short label like "Mon Apr 7 – Sun Apr 13"
   String _weekLabel(String weekStartStr) {
     if (weekStartStr.isEmpty) return 'pts this week';
     try {
       final parts = weekStartStr.split('-');
       if (parts.length < 3) return 'pts this week';
       final start = DateTime(
-        int.parse(parts[0]),
-        int.parse(parts[1]),
-        int.parse(parts[2]),
-      );
+          int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
       final end = start.add(const Duration(days: 6));
-      const monthAbbr = [
-        'Jan','Feb','Mar','Apr','May','Jun',
-        'Jul','Aug','Sep','Oct','Nov','Dec',
+      const ma = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
       ];
-      return '${monthAbbr[start.month-1]} ${start.day} - ${monthAbbr[end.month-1]} ${end.day}';
+      return '${ma[start.month - 1]} ${start.day} – ${ma[end.month - 1]} ${end.day}';
     } catch (_) {
       return 'pts this week';
     }
   }
 }
 
-class _CalendarGrid extends StatelessWidget {
-  final int daysInMonth;
-  final int firstWeekday;
-  final int today;
-  final DateTime now;
-  final DateTime? streakStartDate;
-  final String lastStreakDate;
-  final Color primary;
-  const _CalendarGrid({
-    required this.daysInMonth,
-    required this.firstWeekday,
-    required this.today,
-    required this.now,
-    required this.streakStartDate,
-    required this.lastStreakDate,
-    required this.primary,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final totalCells = firstWeekday + daysInMonth;
-    final rows = (totalCells / 7).ceil();
-    // Copy nullable field to local for flow analysis promotion
-    final localStreakStart = streakStartDate;
-
-    // Parse lastStreakDate to know the end of streak
-    DateTime? lastStreakDay;
-    if (lastStreakDate.isNotEmpty) {
-      try {
-        final parts = lastStreakDate.split('-');
-        lastStreakDay = DateTime(
-          int.parse(parts[0]),
-          int.parse(parts[1]),
-          int.parse(parts[2]),
-        );
-      } catch (_) {}
-    }
-
-    return Column(
-      children: List.generate(rows, (row) {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: List.generate(7, (col) {
-            final index = row * 7 + col;
-            final day = index - firstWeekday + 1;
-            if (day < 1 || day > daysInMonth) {
-              return const SizedBox(width: 32, height: 32);
-            }
-            final isToday = day == today;
-
-            // Check if this calendar day falls within the streak range
-            // using actual dates (safe across month boundaries)
-            bool isStreakDay = false;
-            if (localStreakStart != null && lastStreakDay != null) {
-              final start = localStreakStart;
-              final end = lastStreakDay;
-              final cellDate = DateTime(now.year, now.month, day);
-              isStreakDay = !cellDate.isBefore(start) &&
-                  !cellDate.isAfter(end) &&
-                  !isToday;
-            }
-
-            Color bg = Colors.transparent;
-            Color textColor = const Color(0xFF1A1A1A);
-            if (isToday) {
-              bg = primary;
-              textColor = Colors.white;
-            } else if (isStreakDay) {
-              bg = primary.withValues(alpha: 0.15);
-              textColor = primary;
-            }
-
-            return SizedBox(
-              width: 32,
-              height: 36,
-              child: Center(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: bg,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$day',
-                      style: GoogleFonts.poppins(
-                        fontSize: isToday ? 13 : 12,
-                        fontWeight: isToday || isStreakDay
-                            ? FontWeight.w700
-                            : FontWeight.w400,
-                        color: textColor,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
-        );
-      }),
-    );
-  }
-}
+// ── Stat Bubble ────────────────────────────────────────────────────────────
 
 class _StatBubble extends StatelessWidget {
   final IconData icon;
@@ -516,120 +731,265 @@ class _StatBubble extends StatelessWidget {
     Widget content = Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.15),
+            blurRadius: 10,
+          ),
+        ],
       ),
       child: Column(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: color,
             ),
-            Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 10,
-                color: Colors.grey.shade500,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      );
+          ),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+                fontSize: 9, color: Colors.white38),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
 
     if (onTap != null) {
-      content = GestureDetector(
-        onTap: onTap,
-        child: content,
-      );
+      content = GestureDetector(onTap: onTap, child: content);
     }
-
     return Expanded(child: content);
   }
 }
 
-// ── Brain Game Card ─────────────────────────────────────────────────────────
+// ── Today's Plan Horizontal Scroll ─────────────────────────────────────────
 
-class _BrainGameCard extends StatelessWidget {
-  final VoidCallback onTap;
+class _TodaysPlanScroll extends StatelessWidget {
+  final List<DailyTask> tasks;
   final Color primary;
-  const _BrainGameCard({required this.onTap, required this.primary});
+
+  const _TodaysPlanScroll({required this.tasks, required this.primary});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    if (tasks.isEmpty) {
+      return Container(
+        height: 200,
+        alignment: Alignment.center,
+        child: Text(
+          'Loading tasks…',
+          style: GoogleFonts.poppins(
+              color: Colors.white38, fontSize: 14),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Icon(
-                Icons.psychology_alt_rounded,
-                color: primary,
-                size: 30,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Brain Training',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                      color: const Color(0xFF1A1A1A),
-                    ),
-                  ),
-                  Text(
-                    'Memory • Logic • Math Sprint',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios_rounded, size: 16, color: primary),
-          ],
-        ),
+      );
+    }
+    return SizedBox(
+      height: 206,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.zero,
+        itemCount: tasks.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
+        itemBuilder: (context, i) =>
+            _PlanCard(task: tasks[i], slotIndex: i, primary: primary),
       ),
     );
   }
 }
 
-// ── Did You Know Card ───────────────────────────────────────────────────────
+// ── Plan Card ──────────────────────────────────────────────────────────────
+
+class _PlanCard extends StatelessWidget {
+  final DailyTask task;
+  final int slotIndex;
+  final Color primary;
+
+  const _PlanCard({
+    required this.task,
+    required this.slotIndex,
+    required this.primary,
+  });
+
+  static const _tagLabels = ['Easy', 'Medium', 'Hard'];
+
+  /// Generate 3 harmonious card tints from the primary seed:
+  /// slot 0 = primary lightened 55% (light/soft),
+  /// slot 1 = primary itself,
+  /// slot 2 = primary darkened 20% (rich/deep).
+  List<Color> _cardColors() {
+    return [
+      Color.lerp(primary, Colors.white, 0.55)!,
+      primary,
+      Color.lerp(primary, Colors.black, 0.22)!,
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final idx = slotIndex.clamp(0, 2);
+    final colors = _cardColors();
+    final bg = task.isCompleted ? colors[idx].withValues(alpha: 0.55) : colors[idx];
+    final tag = _tagLabels[idx];
+
+    // Light cards need dark text; dark cards need white text.
+    final luminance = bg.computeLuminance();
+    final textColor = luminance > 0.45 ? const Color(0xFF1C1C1E) : Colors.white;
+
+    return GestureDetector(
+      onTap: () => _navigate(context),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 158,
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: colors[idx].withValues(alpha: 0.42),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Difficulty pill + optional done check
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: textColor.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    tag,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+                if (task.isCompleted)
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: textColor.withValues(alpha: 0.85),
+                    size: 18,
+                  ),
+              ],
+            ),
+            const Spacer(),
+            // Game icon from Brain Hub icon set
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: textColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                _taskIcon(task.type),
+                size: 24,
+                color: textColor,
+              ),
+            )
+                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .scale(
+                  begin: const Offset(1.0, 1.0),
+                  end: const Offset(1.06, 1.06),
+                  duration: 1800.ms,
+                  curve: Curves.easeInOut,
+                ),
+            const SizedBox(height: 6),
+            // Game name
+            Text(
+              task.title,
+              style: GoogleFonts.poppins(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: textColor,
+                height: 1.2,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            // XP reward
+            Text(
+              '+${task.xpReward} XP',
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: textColor.withValues(alpha: 0.65),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _navigate(BuildContext context) {
+    // Brain game screens self-manage difficulty via BrainDifficultySelector.
+    // The original 5 games are driven by GameProvider internally.
+    final Widget screen = switch (task.type) {
+      // ── Logic ─────────────────────────────────────────────────────────────
+      TaskType.mathSprint        => const CountdownMathScreen(),
+      TaskType.memory            => const ActionSequenceRecallScreen(),
+      TaskType.logic             => const SumSnakeScreen(),
+      TaskType.schulte           => const BinaryPuzzleScreen(),
+      TaskType.stroop            => const AkariScreen(),
+      // ── Speed ─────────────────────────────────────────────────────────────
+      TaskType.reactionTimeTap   => const CountdownMathScreen(),
+      TaskType.numberRush        => const CountdownMathScreen(),
+      TaskType.whackATarget      => const AttentionalBlinkScreen(),
+      TaskType.speedSort         => const CountdownMathScreen(),
+      // ── Memory ────────────────────────────────────────────────────────────
+      TaskType.cardMatch         => const ActionSequenceRecallScreen(),
+      TaskType.sequenceRecall    => const ActionSequenceRecallScreen(),
+      TaskType.nBack             => const ActionSequenceRecallScreen(),
+      TaskType.memoryPalace      => const ActionSequenceRecallScreen(),
+      // ── Focus ─────────────────────────────────────────────────────────────
+      TaskType.stroopTest        => const AttentionalBlinkScreen(),
+      TaskType.sart              => const AttentionalBlinkScreen(),
+      TaskType.spotTheDifference => const AttentionalBlinkScreen(),
+      // ── Logic ─────────────────────────────────────────────────────────────
+      TaskType.twentyFourGame    => const CountdownMathScreen(),
+      TaskType.slidingPuzzle     => const BinaryPuzzleScreen(),
+      TaskType.patternCompletion => const AkariScreen(),
+      TaskType.miniSudoku        => const BinaryPuzzleScreen(),
+      // ── Verbal ────────────────────────────────────────────────────────────
+      TaskType.wordChains        => const WordWheelScreen(),
+      TaskType.anagramSolver     => const WordWheelScreen(),
+      TaskType.categoryBlitz     => const WordWheelScreen(),
+      TaskType.mentalRotation    => const BalanceScaleScreen(),
+      TaskType.mazeNavigator     => const BalanceScaleScreen(),
+    };
+
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+  }
+}
+
+// ── Did You Know Card ──────────────────────────────────────────────────────
 
 class _DidYouKnowCard extends StatelessWidget {
   final VoidCallback onTap;
+
   const _DidYouKnowCard({required this.onTap});
 
   @override
@@ -637,428 +997,77 @@ class _DidYouKnowCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 120,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              const Color(0xFF6C63FF).withValues(alpha: 0.9),
-              const Color(0xFF9C88FF),
-            ],
+          gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
+            colors: [Color(0xFF1A0A2E), Color(0xFF6B21A8)],
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+              color: const Color(0xFF8B5CF6).withValues(alpha: 0.35)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF8B5CF6).withValues(alpha: 0.30),
+              blurRadius: 24,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     'Did You Know?',
                     style: GoogleFonts.poppins(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: Colors.white54,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Explore 10 Mind-Blowing Facts',
+                    'Explore Mind-Blowing Facts',
                     style: GoogleFonts.poppins(
                       color: Colors.white,
                       fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap to Discover →',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.lightbulb_rounded,
-              size: 48,
-              color: Colors.white54,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── League Badge Card ──────────────────────────────────────────────────────
-
-class _LeagueBadgeCard extends StatelessWidget {
-  final LeagueInfo league;
-  final int totalPoints;
-  final double progress;
-  final int pointsToNext;
-  final bool isMax;
-
-  const _LeagueBadgeCard({
-    required this.league,
-    required this.totalPoints,
-    required this.progress,
-    required this.pointsToNext,
-    required this.isMax,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: league.bgColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: league.color.withValues(alpha: 0.3),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: league.color.withValues(alpha: 0.1),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // League icon
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: league.color.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: league.color.withValues(alpha: 0.4),
-                width: 2,
-              ),
-            ),
-            child: Icon(league.icon, color: league.color, size: 28),
-          ),
-          const SizedBox(width: 16),
-
-          // League name + progress
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  league.displayName,
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    color: league.color,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  isMax
-                      ? 'Max League Reached! 🏆'
-                      : '$pointsToNext pts to next level',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    backgroundColor: league.color.withValues(alpha: 0.12),
-                    valueColor: AlwaysStoppedAnimation(league.color),
-                    minHeight: 8,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-
-          // Total points badge
-          Column(
-            children: [
-              Text(
-                '$totalPoints',
-                style: GoogleFonts.poppins(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: league.color,
-                ),
-              ),
-              Text(
-                'pts',
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Daily Tasks Card ─────────────────────────────────────────────────────────
-
-class _DailyTasksCard extends StatelessWidget {
-  final List<DailyTask> tasks;
-  final int completedCount;
-  final Color primary;
-
-  const _DailyTasksCard({
-    required this.tasks,
-    required this.completedCount,
-    required this.primary,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final total = tasks.isEmpty ? 3 : tasks.length;
-    final allDone = completedCount >= total && total > 0;
-    final progress = total > 0 ? completedCount / total : 0.0;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Daily Tasks',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1A1A1A),
                     ),
                   ),
-                  Text(
-                    allDone
-                        ? 'All done! Come back tomorrow 🌟'
-                        : '$completedCount / $total tasks complete',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: allDone ? primary : Colors.grey.shade500,
-                      fontWeight:
-                          allDone ? FontWeight.w600 : FontWeight.w400,
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '10 facts inside  →',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
               ),
-              if (allDone)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF20BC68).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '🎉 All Done!',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF20BC68),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 7,
-              backgroundColor: Colors.grey.shade100,
-              valueColor: AlwaysStoppedAnimation(
-                allDone ? const Color(0xFF20BC68) : primary,
-              ),
             ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Task rows
-          if (tasks.isEmpty)
-            Center(
-              child: Text(
-                'Loading tasks...',
-                style: GoogleFonts.poppins(
-                  color: Colors.grey,
-                  fontSize: 13,
-                ),
-              ),
-            )
-          else
-            ...tasks.asMap().entries.map((entry) {
-              final i = entry.key;
-              final task = entry.value;
-              return _TaskRow(
-                task: task,
-                slotIndex: i,
-                primary: primary,
-              );
-            }),
-        ],
-      ),
-    );
-  }
-}
-
-class _TaskRow extends StatelessWidget {
-  final DailyTask task;
-  final int slotIndex;
-  final Color primary;
-
-  const _TaskRow({
-    required this.task,
-    required this.slotIndex,
-    required this.primary,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = [
-      const Color(0xFF20BC68), // Easy — green
-      const Color(0xFF6C63FF), // Medium — purple
-      const Color(0xFFFF6B6B), // Hard — red-orange
-    ];
-    final slotColor = colors[slotIndex.clamp(0, 2)];
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 400),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: task.isCompleted
-              ? slotColor.withValues(alpha: 0.08)
-              : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: task.isCompleted
-                ? slotColor.withValues(alpha: 0.35)
-                : Colors.grey.shade200,
-            width: 1.5,
-          ),
-        ),
-        child: Row(
-          children: [
-            // Icon
-            Text(task.icon, style: const TextStyle(fontSize: 22)),
             const SizedBox(width: 12),
-
-            // Title + description
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    task.title,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: task.isCompleted
-                          ? slotColor
-                          : const Color(0xFF1A1A1A),
-                      decoration: task.isCompleted
-                          ? TextDecoration.lineThrough
-                          : null,
-                      decorationColor: slotColor,
-                    ),
-                  ),
-                  Text(
-                    task.description,
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: Colors.grey.shade500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-
-            // XP chip
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 3,
-              ),
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: slotColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+                color: Colors.white.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
               ),
-              child: Text(
-                '+${task.xpReward} XP',
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: slotColor,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-
-            // Checkmark
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: task.isCompleted
-                  ? Icon(
-                      Icons.check_circle_rounded,
-                      key: const ValueKey('check'),
-                      color: slotColor,
-                      size: 22,
-                    )
-                  : Icon(
-                      Icons.radio_button_unchecked_rounded,
-                      key: const ValueKey('uncheck'),
-                      color: Colors.grey.shade300,
-                      size: 22,
-                    ),
+              child: const Icon(Icons.arrow_forward_rounded,
+                  color: Colors.white, size: 20),
             ),
           ],
         ),

@@ -3,6 +3,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/workout_plan_model.dart';
+import '../services/app_logger.dart';
 
 export '../models/workout_plan_model.dart';
 
@@ -32,8 +33,15 @@ class IntervalTimerProvider extends ChangeNotifier {
   VoidCallback? onWorkoutComplete;
 
   // Audio
+  // Assets loaded ONCE in constructor; subsequent plays seek to zero and
+  // play — eliminates per-tick platform-channel asset reloads.
   final AudioPlayer _tickPlayer = AudioPlayer();
   final AudioPlayer _stopPlayer = AudioPlayer();
+  bool _audioReady = false;
+
+  // Cached after _loadPlans() — reused in _savePlans() to avoid repeated
+  // platform-channel getInstance() calls on every plan save.
+  SharedPreferences? _cachedPrefs;
 
   // ── Saved Workout Plans ───────────────────────────────────────────────
   final List<WorkoutPlan> _savedPlans = [];
@@ -60,6 +68,7 @@ class IntervalTimerProvider extends ChangeNotifier {
 
   IntervalTimerProvider() {
     _loadPlans();
+    _preloadAudio();
   }
 
   // ── Plans Persistence ─────────────────────────────────────────────────
@@ -67,6 +76,7 @@ class IntervalTimerProvider extends ChangeNotifier {
   Future<void> _loadPlans() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      _cachedPrefs = prefs; // cache for all subsequent saves
       final raw = prefs.getStringList(_plansKey) ?? [];
       _savedPlans.clear();
       for (final s in raw) {
@@ -74,17 +84,21 @@ class IntervalTimerProvider extends ChangeNotifier {
         if (plan != null) _savedPlans.add(plan);
       }
       notifyListeners();
-    } catch (_) {}
+    } catch (e, s) {
+      AppLogger.error('IntervalTimerProvider._loadPlans', e, s);
+    }
   }
 
   Future<void> _savePlans() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = _cachedPrefs ?? await SharedPreferences.getInstance();
       await prefs.setStringList(
         _plansKey,
         _savedPlans.map((p) => p.encode()).toList(),
       );
-    } catch (_) {}
+    } catch (e, s) {
+      AppLogger.error('IntervalTimerProvider._savePlans', e, s);
+    }
   }
 
   void addPlan(WorkoutPlan plan) {
@@ -128,24 +142,30 @@ class IntervalTimerProvider extends ChangeNotifier {
     _currentItemIndex = 0;
   }
 
-  // ── Audio ─────────────────────────────────────────────────────────────
+  // ── Audio ────────────────────────────────────────────────────────
 
-  Future<void> _playTick() async {
-    if (!soundEnabled) return;
+  Future<void> _preloadAudio() async {
     try {
-      await _tickPlayer.stop();
       await _tickPlayer.setAsset('assets/audio/Tick2.mp3');
       await _tickPlayer.setVolume(0.8);
+      await _stopPlayer.setAsset('assets/audio/Stop.mp3');
+      await _stopPlayer.setVolume(1.0);
+      _audioReady = true;
+    } catch (_) {}
+  }
+
+  Future<void> _playTick() async {
+    if (!soundEnabled || !_audioReady) return;
+    try {
+      await _tickPlayer.seek(Duration.zero);
       await _tickPlayer.play();
     } catch (_) {}
   }
 
   Future<void> _playStop() async {
-    if (!soundEnabled) return;
+    if (!soundEnabled || !_audioReady) return;
     try {
-      await _stopPlayer.stop();
-      await _stopPlayer.setAsset('assets/audio/Stop.mp3');
-      await _stopPlayer.setVolume(1.0);
+      await _stopPlayer.seek(Duration.zero);
       await _stopPlayer.play();
     } catch (_) {}
   }
@@ -233,10 +253,16 @@ class IntervalTimerProvider extends ChangeNotifier {
   void _handlePhaseTransition() {
     if (_phase == IntervalPhase.work) {
       _playStop();
-      if (_restSeconds > 0) {
+
+      // Rest only plays BETWEEN rounds — never after the last round of an item.
+      final bool isLastRoundOfItem = _currentRound >= _totalRounds;
+
+      if (!isLastRoundOfItem && _restSeconds > 0) {
+        // Mid-workout: go to rest before next round
         _phase = IntervalPhase.rest;
         _remainingSeconds = _restSeconds;
       } else {
+        // Last round finished — skip rest, move to next item or complete
         _moveToNextRoundOrComplete();
       }
     } else if (_phase == IntervalPhase.rest) {
@@ -247,12 +273,13 @@ class IntervalTimerProvider extends ChangeNotifier {
 
   void _moveToNextRoundOrComplete() {
     if (_currentRound < _totalRounds) {
+      // Advance to next round within the same item
       _currentRound++;
       _phase = IntervalPhase.work;
       _remainingSeconds = _workSeconds;
       _playTick();
     } else {
-      // Check if there are more items in the plan
+      // All rounds of this item done — check for more items in the plan
       if (_currentItemIndex < _activeItems.length - 1) {
         _currentItemIndex++;
         _applyCurrentItemSettings();
@@ -261,11 +288,11 @@ class IntervalTimerProvider extends ChangeNotifier {
         _remainingSeconds = _workSeconds;
         _playTick();
       } else {
+        // Entire workout complete
         _phase = IntervalPhase.complete;
         _isRunning = false;
         _timer?.cancel();
         _playStop();
-        // Call completion callback
         onWorkoutComplete?.call();
       }
     }
