@@ -52,22 +52,12 @@ Grab the latest Android build directly from the **[Releases](https://github.com/
 
 <br/>
 
-### ⏱️ Pro Interval & Workout Timer Suite
+### ⏱️ Pro Interval & Timer Suite
 
-| 🎛️ Command Center Setup | 🔊 3-2-1 Audio Countdown | ⚡ High-Intensity Work Phase |
+| 🎛️ Command Center Setup | ⚡ High-Intensity Work Phase | ⏱️ Classic Stopwatch |
 | :---: | :---: | :---: |
-| <img src="screenshots/05_interval_timer_setup.png" width="240" alt="Interval Timer Setup Screen" /> | <img src="screenshots/06_timer_countdown.png" width="240" alt="3-2-1 Audio Prep Phase" /> | <img src="screenshots/07_timer_active_work.png" width="240" alt="Active Work Phase" /> |
-| *1-tap presets (Tabata, HIIT, Boxing) & cadence bar* | *4-second synchronized voice countdown* | *Dynamic neon progress & interval transitions* |
-
-<br/>
-
-### ⏱️ Precision Stopwatch & Countdown
-
-<p align="center">
-  <img src="screenshots/04_timer_classic.png" width="240" alt="Classic Timer & Stopwatch" />
-  <br />
-  <em>Classic precision stopwatch with lap split capabilities and custom countdowns</em>
-</p>
+| <img src="screenshots/05_interval_timer_setup.png" width="240" alt="Interval Timer Setup Screen" /> | <img src="screenshots/07_timer_active_work.png" width="240" alt="Active Work Phase" /> | <img src="screenshots/04_timer_classic.png" width="240" alt="Classic Timer & Stopwatch" /> |
+| *1-tap presets (Tabata, HIIT, Boxing) & cadence bar* | *Dynamic neon progress & interval transitions* | *Precision stopwatch with lap splits & countdown* |
 
 </div>
 
@@ -80,7 +70,6 @@ Designed from the ground up for high-intensity athletes, runners, and focused wo
 - 🎛️ **Command Center Hero**: Computes total estimated workout duration in real time with an athletic typography HUD.
 - 📊 **Visual Cadence Bar**: Color-coded proportional timeline depicting every work and recovery interval block at a glance.
 - ⚡ **1-Tap Quick Presets**: Instant load for **Tabata** (20s/10s × 8), **HIIT** (40s/20s × 5), **Boxing** (3m/1m × 3), and **Sprint** (30s/30s × 6).
-- 🔊 **Synchronized Voice Audio Countdown**: Features authentic voice coaching (`"3 - 2 - 1 - START!"`) with an energetic 4-second preparation phase.
 - 🎯 **Seamless Tap-to-Edit Steppers**: Direct number input dialogs alongside quick adjustment step buttons (`-5s` / `+5s`).
 - 🛡️ **Distraction-Free Immersion**: Custom invisible scroll behavior (`_NoThumbScrollBehavior`) completely hides scrollbars and overscroll clutter for an ultra-clean mobile and desktop aesthetic.
 
