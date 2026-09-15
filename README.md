@@ -6,7 +6,7 @@
 
 **Train your brain, stay focused, and build lasting habits — one byte at a time.**
 
-Brain training • Focus timers • Bite-sized knowledge • Streaks & XP
+Brain Training • Pro Interval & Focus Timers • Habit & XP System • Distraction-Free UX
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.0+-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-3.11+-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev)
@@ -19,40 +19,83 @@ Brain training • Focus timers • Bite-sized knowledge • Streaks & XP
 
 ## 📱 Download
 
-Grab the latest Android build from the **[Releases](https://github.com/Asta-dev-378/G-Bytes/releases)** page — no code setup required:
+Grab the latest Android build directly from the **[Releases](https://github.com/Asta-dev-378/G-Bytes/releases)** page — ready to install with zero setup:
 
-1. Go to the **[Releases](https://github.com/Asta-dev-378/G-Bytes/releases)** section of this repository.
-2. Download the latest `.apk` file.
-3. On your Android device, enable **Install from unknown sources** (if prompted).
-4. Open the downloaded file to install.
+1. Visit the **[Releases](https://github.com/Asta-dev-378/G-Bytes/releases)** section of this repository.
+2. Download the latest `app-release.apk` file.
+3. On your Android device, enable **Install from unknown sources** if prompted.
+4. Open the APK to launch G-Bytes.
 
-> **Note:** Windows and Web builds may also be available on the Releases page depending on the latest version.
+> **Note:** Windows Desktop and Web builds are also supported. See [Getting Started](#-getting-started-for-developers) to run or build locally.
 
 ---
 
-## ✨ Features
+## 🎬 App Experience
+
+<div align="center">
+  <img src="screenshots/app_demo_animation.webp" alt="G-Bytes App Demo Animation" width="300" style="border-radius: 20px; box-shadow: 0 16px 40px rgba(0,0,0,0.6);" />
+  <p><em>Fluid athletic transitions • Synchronized audio coaching • Zero scrollbar clutter</em></p>
+</div>
+
+---
+
+## 📸 Visual Showcase
+
+<div align="center">
+
+### ⚡ Core Experience & Dashboard
+
+| 🌟 Fluid Brand Launch | 🔥 G-Zone Fitness & Habits | 🧠 Brain Hub Cognitive Suite |
+| :---: | :---: | :---: |
+| <img src="screenshots/01_splash_screen.png" width="240" alt="G-Bytes Splash Screen" /> | <img src="screenshots/02_g_zone.png" width="240" alt="G-Zone Dashboard" /> | <img src="screenshots/03_brain_hub.png" width="240" alt="Brain Hub Screen" /> |
+| *Pulsing neon startup animation* | *Daily training, streaks & XP progression* | *Engaging cognitive games & exercises* |
+
+<br/>
+
+### ⏱️ Pro Interval & Workout Timer Suite
+
+| 🎛️ Command Center Setup | 🔊 3-2-1 Audio Countdown | ⚡ High-Intensity Work Phase |
+| :---: | :---: | :---: |
+| <img src="screenshots/05_interval_timer_setup.png" width="240" alt="Interval Timer Setup Screen" /> | <img src="screenshots/06_timer_countdown.png" width="240" alt="3-2-1 Audio Prep Phase" /> | <img src="screenshots/07_timer_active_work.png" width="240" alt="Active Work Phase" /> |
+| *1-tap presets (Tabata, HIIT, Boxing) & cadence bar* | *4-second synchronized voice countdown* | *Dynamic neon progress & interval transitions* |
+
+<br/>
+
+### ⏱️ Precision Stopwatch & Countdown
+
+<p align="center">
+  <img src="screenshots/04_timer_classic.png" width="240" alt="Classic Timer & Stopwatch" />
+  <br />
+  <em>Classic precision stopwatch with lap split capabilities and custom countdowns</em>
+</p>
+
+</div>
+
+---
+
+## ✨ Key Features
+
+### ⏱️ Athletic & Pro Interval Timer Suite
+Designed from the ground up for high-intensity athletes, runners, and focused workers:
+- 🎛️ **Command Center Hero**: Computes total estimated workout duration in real time with an athletic typography HUD.
+- 📊 **Visual Cadence Bar**: Color-coded proportional timeline depicting every work and recovery interval block at a glance.
+- ⚡ **1-Tap Quick Presets**: Instant load for **Tabata** (20s/10s × 8), **HIIT** (40s/20s × 5), **Boxing** (3m/1m × 3), and **Sprint** (30s/30s × 6).
+- 🔊 **Synchronized Voice Audio Countdown**: Features authentic voice coaching (`"3 - 2 - 1 - START!"`) with an energetic 4-second preparation phase.
+- 🎯 **Seamless Tap-to-Edit Steppers**: Direct number input dialogs alongside quick adjustment step buttons (`-5s` / `+5s`).
+- 🛡️ **Distraction-Free Immersion**: Custom invisible scroll behavior (`_NoThumbScrollBehavior`) completely hides scrollbars and overscroll clutter for an ultra-clean mobile and desktop aesthetic.
 
 ### 🎮 Brain Training Mini-Games
-Sharpen your mind with quick, engaging exercises:
-- ⚡ **Speed math challenges**
-- 🧠 **Memory recall games**
-- 🔍 **Pattern recognition**
-- 🎯 **Cognitive reflex exercises**
+Keep your mind sharp with an expanding collection of cognitive challenges:
+- ⚡ **Speed Math**: Mental arithmetic under timed pressure.
+- 🔤 **Word Wheel**: Lexical fluency and anagram resolution with a 3,000+ word dictionary.
+- 🧩 **Nonogram & Akari**: Classic grid logic puzzles designed for spatial deduction.
+- 🔢 **Number Maze & Balance Scale**: Numerical reasoning and logical balancing.
+- 🧠 **Memory Matrix & Recall**: Short-term visual working memory tests.
 
-### ⏱️ Focus Timers
-Stay in the zone with:
-- 🍅 **Pomodoro-style sessions**
-- ⚙️ **Custom focus intervals**
-- 🔔 **Audio cues to mark transitions**
-
-### 📚 Knowledge & Bite-Sized Learning
-- 💡 **Daily "knowledge bytes"** and fun facts
-- 🗂️ **Flashcards** for quick learning on the go
-
-### 🔥 Streaks, XP & Habit Tracking
-- 📈 **Daily streak tracking** to build consistency
-- ⭐ **XP and progression system** to keep you motivated
-- 🔄 **Habit tracking** woven seamlessly into your daily flow
+### 🔥 Habits, Streaks & Gamification
+- 📈 **Daily Streak Engine**: Build unbroken momentum and positive daily habits.
+- ⭐ **XP & Level Progression**: Earn experience points for every game solved and workout completed.
+- 🏆 **Achievement Milestones**: Unlock badges as your consistency reaches new heights.
 
 ---
 
@@ -60,29 +103,29 @@ Stay in the zone with:
 
 | Category | Technology |
 | :--- | :--- |
-| **Language & Framework** | [Dart](https://dart.dev/) `^3.11.1` / [Flutter](https://flutter.dev/) (Material 3) |
-| **State Management** | [provider](https://pub.dev/packages/provider) |
-| **Routing** | [go_router](https://pub.dev/packages/go_router) |
-| **UI & Animation** | [flutter_animate](https://pub.dev/packages/flutter_animate), [percent_indicator](https://pub.dev/packages/percent_indicator), bundled local Poppins typography |
-| **Audio** | [just_audio](https://pub.dev/packages/just_audio) |
-| **Local Persistence** | [shared_preferences](https://pub.dev/packages/shared_preferences) |
-| **Target Platforms** | Android, Windows Desktop, Web |
+| **Framework & Language** | [Flutter](https://flutter.dev/) (Material 3) • [Dart](https://dart.dev/) `^3.11.1` |
+| **State Management** | [Provider](https://pub.dev/packages/provider) architecture |
+| **Navigation & Routing** | [GoRouter](https://pub.dev/packages/go_router) declarative routing |
+| **UI & Animations** | Bundled Poppins typography, glassmorphism design tokens, custom responsive layout scaling |
+| **Audio Engine** | [just_audio](https://pub.dev/packages/just_audio) & [audio_session](https://pub.dev/packages/audio_session) with zero-latency cues |
+| **Local Persistence** | [shared_preferences](https://pub.dev/packages/shared_preferences) for offline-first data |
+| **Platforms Supported** | Android, Windows Desktop, Web |
 
 ---
 
 ## 🚀 Getting Started (for developers)
 
-To get started with development or build from source:
+To run or build the project from source:
 
 ```bash
-# 1. Clone the repo
+# 1. Clone the repository
 git clone https://github.com/Asta-dev-378/G-Bytes.git
 cd G-Bytes
 
-# 2. Install dependencies
+# 2. Fetch dependencies
 flutter pub get
 
-# 3. Run on a connected device / emulator
+# 3. Run on connected device or emulator
 flutter run
 
 # 4. Build a release APK
@@ -93,17 +136,12 @@ flutter build apk --release
 
 ## 🗺️ Roadmap
 
-- [ ] iOS support
-- [ ] Cloud sync for streaks & XP
-- [ ] More mini-game categories
-- [ ] Custom flashcard decks
-- [ ] Social / leaderboard features
-
----
-
-## 🤝 Contributing
-
-Contributions, bug reports, and feature requests are welcome! Feel free to check the **[Issues page](https://github.com/Asta-dev-378/G-Bytes/issues)**.
+- [x] High-energy voice countdown for Interval & Plan timers
+- [x] Redesigned athletic command center for interval workouts
+- [x] Invisible distraction-free scrollbars
+- [ ] Cloud sync for cross-device streaks & progress
+- [ ] iOS target deployment
+- [ ] Community leaderboards & challenge leagues
 
 ---
 
@@ -113,6 +151,6 @@ This project is licensed under the **[MIT License](LICENSE)**.
 
 ---
 
-## 📬 Contact
+## 📬 Contact & Feedback
 
-Have feedback or found a bug? Open an **[issue](https://github.com/Asta-dev-378/G-Bytes/issues)** or reach out directly.
+Found a bug or have a suggestion? Feel free to open an **[issue](https://github.com/Asta-dev-378/G-Bytes/issues)** or submit a pull request!
