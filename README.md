@@ -26,7 +26,7 @@ Grab the latest Android build directly from the **[Releases](https://github.com/
 3. On your Android device, enable **Install from unknown sources** if prompted.
 4. Open the APK to launch G-Bytes.
 
-> **Note:** Windows Desktop and Web builds are also supported. See [Getting Started](#-getting-started-for-developers) to run or build locally.
+> **Note:** Windows Desktop and Web builds may also be provided on the Releases page depending on the release version.
 
 ---
 
@@ -110,27 +110,6 @@ Keep your mind sharp with an expanding collection of cognitive challenges:
 | **Audio Engine** | [just_audio](https://pub.dev/packages/just_audio) & [audio_session](https://pub.dev/packages/audio_session) with zero-latency cues |
 | **Local Persistence** | [shared_preferences](https://pub.dev/packages/shared_preferences) for offline-first data |
 | **Platforms Supported** | Android, Windows Desktop, Web |
-
----
-
-## 🚀 Getting Started (for developers)
-
-To run or build the project from source:
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/Asta-dev-378/G-Bytes.git
-cd G-Bytes
-
-# 2. Fetch dependencies
-flutter pub get
-
-# 3. Run on connected device or emulator
-flutter run
-
-# 4. Build a release APK
-flutter build apk --release
-```
 
 ---
 
